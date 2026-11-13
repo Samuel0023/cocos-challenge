@@ -60,7 +60,7 @@ services:
     extra_hosts:
       - 'host.docker.internal:host-gateway'
     volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     healthcheck:
       test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:9090/-/ready']
       interval: 2s
@@ -79,8 +79,8 @@ services:
       GF_ANALYTICS_REPORTING_ENABLED: 'false'
       GF_ANALYTICS_CHECK_FOR_UPDATES: 'false'
     volumes:
-      - ./grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./docker/grafana/dashboards:/var/lib/grafana/dashboards:ro
     depends_on:
       prometheus:
         condition: service_healthy

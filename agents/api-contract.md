@@ -19,5 +19,5 @@ Reference for agents. Full examples: [docs/api.md](../docs/api.md). Runnable req
 - Money in responses is a string with two decimals. Order `size` and ids are numbers.
 - Error body: `{ "error": { "code", "message", "details"? } }`.
 - Search `limit` is 1 to 100 (default 20).
-- `GET /metrics` is Prometheus text. Metric names and labels are a contract for the Grafana dashboard: renaming one means updating `grafana/dashboards/cocos-api.json`.
+- `GET /metrics` is Prometheus text. Metric names and labels are a contract for the Grafana dashboard: renaming one means updating `docker/grafana/dashboards/cocos-api.json`.
 - Changing a status code, field name or required header is a breaking change. Update `docs/api.md`, `requests.http` and the tests together.

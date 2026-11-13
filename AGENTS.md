@@ -35,17 +35,17 @@ Hexagonal, organised by feature: `src/portfolio`, `src/instruments`, `src/orders
 
 ## Where things are
 
-| Need                      | Look at                                                               |
-| ------------------------- | --------------------------------------------------------------------- |
-| Endpoints and examples    | `docs/api.md`, `requests.http`, `agents/api-contract.md`              |
-| Step-by-step flows        | `docs/flows.md`, `agents/use-cases.md`                                |
-| Tables and schema changes | `db/`, `agents/data-model.md`                                         |
-| Decisions D-01 to D-24    | `docs/decisions.md`, `agents/decisions.md`                            |
-| Local environment         | `docs/local-setup.md`, `Makefile`, `compose.yaml`, `compose.aws.yaml` |
-| Events and AWS Emulator   | `src/events/`, `docker/aws-emulator/`, `docs/local-setup.md`          |
-| Metrics and dashboard     | `src/metrics/`, `prometheus/`, `grafana/`, `docs/architecture.md`     |
-| Diagrams                  | `docs/diagrams/cocos-solution.drawio`                                 |
-| Running the service       | `agents/skills/run-service/SKILL.md`                                  |
+| Need                      | Look at                                                                         |
+| ------------------------- | ------------------------------------------------------------------------------- |
+| Endpoints and examples    | `docs/api.md`, `requests.http`, `agents/api-contract.md`                        |
+| Step-by-step flows        | `docs/flows.md`, `agents/use-cases.md`                                          |
+| Tables and schema changes | `db/`, `agents/data-model.md`                                                   |
+| Decisions D-01 to D-24    | `docs/decisions.md`, `agents/decisions.md`                                      |
+| Local environment         | `docs/local-setup.md`, `Makefile`, `compose.yaml`, `compose.aws.yaml`           |
+| Events and AWS Emulator   | `src/events/`, `docker/aws-emulator/`, `docs/local-setup.md`                    |
+| Metrics and dashboard     | `src/metrics/`, `docker/prometheus/`, `docker/grafana/`, `docs/architecture.md` |
+| Diagrams                  | `docs/diagrams/cocos-solution.drawio`                                           |
+| Running the service       | `agents/skills/run-service/SKILL.md`                                            |
 
 ## Skills
 

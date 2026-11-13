@@ -55,7 +55,7 @@ Defined in `compose.yaml`. `make up` adds `compose.aws.yaml` and the `api` profi
 | `valkey`       | `valkey/valkey:8-alpine`                    | 6379             | Cache                                                                                                 |
 | `aws-emulator` | Built from `docker/aws-emulator/Dockerfile` | 9297 (127.0.0.1) | SNS and SQS. Telemetry off (`-t off`). In `make up` it also publishes the API port 3000               |
 | `aws-init`     | `public.ecr.aws/aws-cli/aws-cli:2.27.50`    | none             | Runs `docker/aws-emulator/init.sh`: creates the topic, queues and subscription, then exits            |
-| `prometheus`   | `prom/prometheus:v3.5.0`                    | 9090             | Scrapes `host.docker.internal:3000/metrics` every 5 seconds (`prometheus/prometheus.yml`)             |
+| `prometheus`   | `prom/prometheus:v3.5.0`                    | 9090             | Scrapes `host.docker.internal:3000/metrics` every 5 seconds (`docker/prometheus/prometheus.yml`)      |
 | `grafana`      | `grafana/grafana:12.1.1`                    | 3001             | Provisioned datasource and dashboard, anonymous `Viewer` access                                       |
 | `api`          | Built from `Dockerfile`                     | 3000             | Profile `api`. Only started by `make up`                                                              |
 
@@ -110,12 +110,12 @@ If publishing to SNS or receiving from SQS fails against the emulator, run the A
 
 Prometheus scrapes one target in both modes: in `make dev` the API listens on the host port 3000, and in `make up` the API port is published on the host through `aws-emulator`. `extra_hosts: host.docker.internal:host-gateway` makes the name resolve on Linux. With one target the dashboard never counts the same API twice.
 
-| File                                               | Content                                                 |
-| -------------------------------------------------- | ------------------------------------------------------- |
-| `prometheus/prometheus.yml`                        | Scrape configuration                                    |
-| `grafana/provisioning/datasources/prometheus.yaml` | Prometheus as the default datasource (uid `prometheus`) |
-| `grafana/provisioning/dashboards/dashboards.yaml`  | Loads dashboards from `grafana/dashboards/`             |
-| `grafana/dashboards/cocos-api.json`                | The dashboard                                           |
+| File                                                      | Content                                                 |
+| --------------------------------------------------------- | ------------------------------------------------------- |
+| `docker/prometheus/prometheus.yml`                        | Scrape configuration                                    |
+| `docker/grafana/provisioning/datasources/prometheus.yaml` | Prometheus as the default datasource (uid `prometheus`) |
+| `docker/grafana/provisioning/dashboards/dashboards.yaml`  | Loads dashboards from `docker/grafana/dashboards/`      |
+| `docker/grafana/dashboards/cocos-api.json`                | The dashboard                                           |
 
 ## Troubleshooting
 

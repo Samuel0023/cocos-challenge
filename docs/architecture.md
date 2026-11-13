@@ -135,7 +135,7 @@ flowchart LR
 | `order_events_queue_backlog`              | Gauge     | none                             | Consumer, from SQS `ApproximateNumberOfMessages` before each poll. A read failure is logged and ignored |
 | `nodejs_*`, `process_*`                   | Various   | Various                          | prom-client default metrics, event loop lag included                                                    |
 
-Grafana dashboard `grafana/dashboards/cocos-api.json` shows orders by status, the rejection ratio, request rate and p95 latency per route, event loop lag, events processed and failed, event processing latency and queue backlog.
+Grafana dashboard `docker/grafana/dashboards/cocos-api.json` shows orders by status, the rejection ratio, request rate and p95 latency per route, event loop lag, events processed and failed, event processing latency and queue backlog.
 
 ## Reference AWS deployment
 
