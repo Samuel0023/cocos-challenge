@@ -6,6 +6,36 @@ This document lists the steps of each flow as the code runs them. The diagrams a
 
 `POST /orders`. Handled by `SubmitOrder`. Only step 7 can end in `REJECTED`.
 
+```mermaid
+sequenceDiagram
+  autonumber
+  participant C as Client
+  participant API as Express + idempotency middleware
+  participant UC as SubmitOrder
+  participant VK as Valkey
+  participant PG as PostgreSQL
+  participant SNS as SNS
+  C->>API: POST /orders (Idempotency-Key)
+  API-->>C: 400 if the key is missing or not a UUID
+  API->>UC: validated command
+  UC->>VK: latest close (MARKET only)
+  VK-->>UC: hit, or miss
+  UC->>PG: latest close on a miss
+  Note over UC: resolve price and size, 4xx stores nothing
+  UC->>PG: BEGIN, SELECT user FOR UPDATE
+  UC->>PG: order with this key already stored?
+  alt key already used
+    PG-->>UC: stored order
+    UC-->>C: 201 stored order, or 422 if the request differs
+  else new order
+    UC->>PG: available cash or shares
+    Note over UC: FILLED, NEW or REJECTED
+    UC->>PG: INSERT order, COMMIT
+    UC->>SNS: order.created (a failure is only logged)
+    UC-->>C: 201 order
+  end
+```
+
 1. Check the `Idempotency-Key` header. It must be a UUID. Otherwise respond 400.
 2. Validate the body with Zod (shape, ranges, exactly one of `size` or `amount`, `price` rules). Otherwise respond 400.
 3. Resolve the instrument. `CASH_IN` and `CASH_OUT` default to the ARS instrument. Unknown instrument: 404. `BUY` or `SELL` on ARS, or a transfer on another instrument: 422.
@@ -33,6 +63,27 @@ A retry of a `MARKET` order is matched by user, instrument, side and type. Its s
 
 `POST /orders/:orderId/cancel`. Handled by `CancelOrder`.
 
+```mermaid
+sequenceDiagram
+  autonumber
+  participant C as Client
+  participant UC as CancelOrder
+  participant PG as PostgreSQL
+  participant SNS as SNS
+  C->>UC: POST /orders/:orderId/cancel
+  UC->>PG: find the order and its user
+  UC-->>C: 404 if it does not exist
+  UC->>PG: BEGIN, SELECT user FOR UPDATE
+  UC->>PG: re-read the order
+  alt status is NEW
+    UC->>PG: UPDATE status = CANCELLED, COMMIT
+    UC->>SNS: order.cancelled
+    UC-->>C: 200 order
+  else any other status
+    UC-->>C: 409
+  end
+```
+
 1. Check that `orderId` is a positive integer. Otherwise respond 400. An id beyond the `integer` range gives 404.
 2. Read the order to find its owner. Not found: 404.
 3. Open a transaction and lock the owner's user row.
@@ -44,6 +95,23 @@ A retry of a `MARKET` order is matched by user, instrument, side and type. Its s
 ## Portfolio
 
 `GET /users/:userId/portfolio`. Handled by `GetPortfolio`.
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant C as Client
+  participant UC as GetPortfolio
+  participant PG as PostgreSQL
+  participant VK as Valkey
+  C->>UC: GET /users/:userId/portfolio
+  UC->>PG: user, cash balance, reserved cash, holdings
+  UC-->>C: 404 if the user does not exist
+  Note over UC: drop positions with quantity <= 0
+  UC->>VK: latest quote per instrument (TTL 60 s)
+  UC->>PG: quotes missing from the cache
+  Note over UC: PositionValuation: market value, total and daily return
+  UC-->>C: 200 portfolio
+```
 
 1. Check that `userId` is a positive integer. Otherwise respond 400. An id beyond the `integer` range gives 404.
 2. Check the user exists. Otherwise respond 404.
@@ -74,6 +142,24 @@ The total uses the full cash balance, not the available cash. Percentages and am
 
 `GET /instruments?q=&limit=&offset=`. Handled by `SearchInstruments`.
 
+```mermaid
+sequenceDiagram
+  autonumber
+  participant C as Client
+  participant UC as SearchInstruments
+  participant VK as Valkey
+  participant PG as PostgreSQL
+  C->>UC: GET /instruments?q=
+  UC->>VK: search:q:limit:offset
+  alt cache hit
+    VK-->>UC: cached response
+  else miss or Valkey down
+    UC->>PG: unaccent + lower LIKE on ticker and name
+    UC->>VK: store for 5 minutes
+  end
+  UC-->>C: 200 items, limit, offset, total
+```
+
 1. Validate the query: `q` is required and non-empty, `limit` is 1 to 100 (default 20), `offset` is 0 or more (default 0). Otherwise respond 400.
 2. Lowercase and trim `q`, then look up the key `search:{q}:{limit}:{offset}` in Valkey (TTL 5 minutes).
 3. On a miss, query PostgreSQL. The match is partial on ticker or name, ignoring case and accents. Exact ticker matches come first, then ticker prefix matches, then the rest by ticker. Each item carries the latest `close`.
@@ -82,6 +168,26 @@ The total uses the full cash balance, not the available cash. Percentages and am
 ## Event consumer
 
 `SqsOrderEventConsumer`, started by `main.ts` when `AWS_ENABLED=true` and `CONSUMER_ENABLED=true`.
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant Q as SQS order-events-queue
+  participant L as Consumer loop
+  participant UC as RecordOrderEvent
+  participant PG as analytics.order_events
+  loop while CONSUMER_ENABLED
+    L->>Q: ReceiveMessage (long polling, up to 10)
+    Q-->>L: messages
+    L->>UC: message body
+    UC->>PG: INSERT ... ON CONFLICT (event_id) DO NOTHING
+    alt stored or already present
+      L->>Q: DeleteMessage
+    else failure
+      Note over L,Q: not deleted, SQS redelivers after the visibility timeout
+    end
+  end
+```
 
 1. Read the queue backlog (`ApproximateNumberOfMessages`) into `order_events_queue_backlog`. A failure is logged and ignored.
 2. Long-poll `order-events-queue` (20 seconds, up to 10 messages). A receive error is logged and the loop waits 5 seconds.
@@ -100,6 +206,17 @@ Each message's time from step 3 to 5 or 6 goes to `order_event_processing_durati
 | `FILLED`    | Executed. Counts for balances and positions              | Accepted `MARKET` order, `CASH_IN`, accepted `CASH_OUT` |
 | `REJECTED`  | Stored, not executed                                     | Missing cash or shares only                             |
 | `CANCELLED` | Cancelled by the client                                  | `POST /orders/:orderId/cancel` on a `NEW` order         |
+
+```mermaid
+stateDiagram-v2
+  [*] --> FILLED: MARKET or transfer with funds
+  [*] --> NEW: LIMIT with funds
+  [*] --> REJECTED: missing cash or shares
+  NEW --> CANCELLED: POST /orders/:orderId/cancel
+  FILLED --> [*]
+  REJECTED --> [*]
+  CANCELLED --> [*]
+```
 
 `LIMIT` orders in `NEW` are never executed. There is no market simulation.
 

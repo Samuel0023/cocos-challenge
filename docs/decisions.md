@@ -42,6 +42,41 @@ Assumptions about the challenge data:
 
 All in `db/migrations/001_constraints_and_analytics.sql`. No existing row changes.
 
+```mermaid
+erDiagram
+  users ||--o{ orders : places
+  instruments ||--o{ orders : "is traded in"
+  instruments ||--o{ marketdata : "has prices"
+  orders {
+    int id PK
+    int userid FK
+    int instrumentid FK
+    int size
+    numeric price
+    varchar side
+    varchar type
+    varchar status
+    varchar clientorderid "added: idempotency key"
+    timestamp datetime
+  }
+  marketdata {
+    int id PK
+    int instrumentid FK
+    numeric close
+    numeric previousclose
+    date date
+  }
+  analytics_order_events {
+    bigint id PK
+    uuid event_id UK
+    varchar event_type
+    int order_id
+    int user_id
+    jsonb payload
+    timestamptz occurred_at
+  }
+```
+
 | Change                                                         | Table         | Why                                                                         |
 | -------------------------------------------------------------- | ------------- | --------------------------------------------------------------------------- |
 | Extension `unaccent`                                           | Database      | Search ignores accents                                                      |

@@ -9,6 +9,38 @@ This document explains how to run the service locally: Docker services, environm
 | Development | `make services` then `make dev` | On the host, with Node       | `make dev` sets the AWS variables for the host |
 | Full        | `make up`                       | In Docker, with the services | `compose.aws.yaml` sets them for the container |
 
+```mermaid
+flowchart TB
+  subgraph DEV["Development: make services + make dev"]
+    direction LR
+    H["API on the host :3000"]
+    subgraph D1["Docker"]
+      P1[("postgres :5432")]
+      V1["valkey :6379"]
+      E1["aws-emulator :9297"]
+      M1["prometheus :9090 · grafana :3001"]
+    end
+    H --> P1
+    H --> V1
+    H -- "https://127.0.0.1:9297" --> E1
+    M1 -- "scrape /metrics" --> H
+  end
+  subgraph FULL["Full Docker: make up"]
+    direction LR
+    subgraph NS["network of aws-emulator"]
+      A2["api :3000"]
+      E2["aws-emulator :9297"]
+    end
+    P2[("postgres")]
+    V2["valkey"]
+    M2["prometheus · grafana"]
+    A2 --> P2
+    A2 --> V2
+    A2 -- "127.0.0.1:9297" --> E2
+    M2 -- "scrape /metrics" --> A2
+  end
+```
+
 Stop everything with `make down`. See page "Entorno local" of `docs/diagrams/cocos-solution.drawio`.
 
 Run `make down` before switching modes. `make services` uses only `compose.yaml`, so running it while the `make up` stack is up recreates `aws-emulator` and wipes its in-memory topic and queue.

@@ -6,6 +6,33 @@ This document describes how the code is organised: layers, folders, ports and ad
 
 Business rules sit in the centre. Everything external enters through adapters that implement ports.
 
+```mermaid
+flowchart LR
+  subgraph IN["Input adapters"]
+    HTTP["Express routes<br/>Zod validation<br/>idempotency middleware"]
+    CONS["SQS consumer loop"]
+  end
+  subgraph APP["Application"]
+    UC["GetPortfolio · SearchInstruments<br/>SubmitOrder · CancelOrder<br/>RecordOrderEvent"]
+  end
+  subgraph DOM["Domain"]
+    D["Order · OrderSizing · FundsPolicy<br/>PositionValuation · Money"]
+  end
+  subgraph OUT["Output adapters"]
+    PG["PostgreSQL repositories"]
+    VK["Valkey cache"]
+    SNS["SNS publisher"]
+    MET["Prometheus metrics"]
+  end
+  HTTP --> UC
+  CONS --> UC
+  UC --> D
+  UC -- ports --> PG
+  UC -- ports --> VK
+  UC -- ports --> SNS
+  UC -- ports --> MET
+```
+
 | Layer           | Content                                                                                                                | Depends on       |
 | --------------- | ---------------------------------------------------------------------------------------------------------------------- | ---------------- |
 | Input adapters  | Express routers, Zod validation, error and request-metrics middleware, `Idempotency-Key` middleware, SQS consumer loop | Application      |
@@ -80,6 +107,15 @@ Valkey is optional: without `VALKEY_URL` the API uses `NoCache`.
 | SQS     | Queue subscribed to the topic, read by the consumer | Queue `order-events-queue` |
 | SQS     | Dead-letter queue, after 5 failed receives          | Queue `order-events-dlq`   |
 
+```mermaid
+flowchart LR
+  API["API: SubmitOrder / CancelOrder"] -- "publish after commit" --> T["SNS topic<br/>order-events"]
+  T --> Q["SQS queue<br/>order-events-queue"]
+  Q -- "long polling" --> C["Consumer loop<br/>(same process)"]
+  C -- "INSERT ... ON CONFLICT DO NOTHING" --> AN[("analytics.order_events")]
+  Q -. "after 5 failed receives" .-> DLQ["order-events-dlq"]
+```
+
 - The API publishes `order.created` (with the final order status) and `order.cancelled` after the transaction commits. A publish failure is logged and does not undo the order.
 - With `AWS_ENABLED=true`, `SnsEventPublisher` publishes to the topic. With `AWS_ENABLED=false`, `LogEventPublisher` writes events to the log and the consumer does not start.
 - The consumer is an async loop inside the API process. It long-polls the queue, stores each event in `analytics.order_events` with `ON CONFLICT DO NOTHING`, then deletes the message. If the insert fails, the message is not deleted and SQS redelivers it; after 5 receives it moves to the dead-letter queue. `CONSUMER_ENABLED` turns it on. A receive error is logged and retried after 5 seconds; the loop never crashes, and `stop()` aborts the long poll on shutdown.
@@ -104,6 +140,18 @@ Grafana dashboard `grafana/dashboards/cocos-api.json` shows orders by status, th
 ## Reference AWS deployment
 
 This deployment is a reference. It is not part of the deliverable. See page "Arquitectura AWS" in the diagram file.
+
+```mermaid
+flowchart LR
+  U["Client"] --> ALB["Application Load Balancer"]
+  ALB --> ECS["ECS Fargate<br/>API + consumer loop"]
+  SM["Secrets Manager"] -. "injected as env vars<br/>by the task definition" .-> ECS
+  ECS --> RDS[("RDS for PostgreSQL")]
+  ECS --> EC["ElastiCache for Valkey"]
+  ECS --> SNS["SNS order-events"]
+  SNS --> SQS["SQS order-events-queue"]
+  SQS --> ECS
+```
 
 - The API runs on ECS Fargate behind an Application Load Balancer.
 - PostgreSQL runs on RDS and Valkey on ElastiCache.
