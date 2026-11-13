@@ -49,11 +49,11 @@ Hexagonal, organised by feature: `src/portfolio`, `src/instruments`, `src/orders
 
 ## Skills
 
-The single copy of each skill is in `agents/skills/<name>/SKILL.md`, in the open Agent Skills format. To use it in a tool, link the folder from the tool's skills directory. Vendor folders such as `.claude/skills` must be symlinks to the copy in `agents/skills`, never copies.
+The single copy of each skill is in `agents/skills/<name>/SKILL.md`, in the open Agent Skills format. To use it in a tool, link the folder from the tool's skills directory. Tool-specific folders must be symlinks to the copy in `agents/skills`, never copies.
 
 ```sh
-mkdir -p .claude/skills
-ln -s ../../agents/skills/run-service .claude/skills/run-service
+mkdir -p .agents/skills
+ln -s ../../agents/skills/run-service .agents/skills/run-service
 ```
 
-Use the same link under the folder your tool reads (for example `.agents/skills` or `.opencode/skills`).
+Use the same link under whichever folder your tool reads.
