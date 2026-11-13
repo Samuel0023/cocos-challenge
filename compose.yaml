@@ -26,6 +26,31 @@ services:
       timeout: 3s
       retries: 20
 
+  # AWS's official local emulator (no published image). It writes its per-run credentials,
+  # config and ca.pem to ./.aws-emulator/9297, so the API on the host can read them.
+  aws-emulator:
+    build: ./docker/aws-emulator
+    image: cocos-aws-emulator
+    command: ['-t', 'off']
+    mem_limit: 2g
+    ports:
+      - '127.0.0.1:9297:9297'
+    volumes:
+      - ./.aws-emulator:/home/emulator/.aws/emulator
+
+  # Creates the topic, queue and subscription, then exits. It shares the emulator's network
+  # namespace because the emulator's certificate only covers 127.0.0.1 and localhost.
+  aws-init:
+    image: public.ecr.aws/aws-cli/aws-cli:2.27.50
+    network_mode: service:aws-emulator
+    entrypoint: ['/bin/sh', '/init.sh']
+    volumes:
+      - ./docker/aws-emulator/init.sh:/init.sh:ro
+      - ./.aws-emulator:/emulator:ro
+    depends_on:
+      aws-emulator:
+        condition: service_healthy
+
   api:
     profiles: ['api']
     build: .
