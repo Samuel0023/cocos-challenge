@@ -117,6 +117,17 @@ Prometheus scrapes one target in both modes: in `make dev` the API listens on th
 | `docker/grafana/provisioning/dashboards/dashboards.yaml`  | Loads dashboards from `docker/grafana/dashboards/`      |
 | `docker/grafana/dashboards/cocos-api.json`                | The dashboard                                           |
 
+## Git hooks
+
+`npm ci` installs the hooks with Husky. Nothing else is needed.
+
+| Hook         | What it runs                                                   |
+| ------------ | -------------------------------------------------------------- |
+| `pre-commit` | ESLint and Prettier on the staged files only (`lint-staged`)   |
+| `commit-msg` | Checks the message follows Conventional Commits (`commitlint`) |
+
+Tests are not in a hook: they need Docker and run in CI.
+
 ## Troubleshooting
 
 | Symptom                                                        | Cause and fix                                                                                                                                                                                                                                        |
