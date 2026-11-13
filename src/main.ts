@@ -3,6 +3,7 @@ import { SQSClient } from '@aws-sdk/client-sqs';
 import { z } from 'zod';
 import { buildApp } from './app.ts';
 import { loadConfig, type Config } from './config.ts';
+import { PrometheusMetrics } from './metrics/prometheus-metrics.ts';
 import { PgOrderEventStore } from './events/pg-order-event-store.ts';
 import { RecordOrderEvent } from './events/record-order-event.ts';
 import { SqsOrderEventConsumer, SqsOrderEventQueue } from './events/sqs-order-event-consumer.ts';
@@ -28,6 +29,7 @@ function readConfig(): Config {
 const config = readConfig();
 const logger = createLogger(config.LOG_LEVEL);
 const pool = createPool(config.DATABASE_URL);
+const metrics = new PrometheusMetrics();
 const valkey = config.VALKEY_URL ? new ValkeyCache(config.VALKEY_URL, logger) : undefined;
 
 // Credentials come from the SDK's default chain (environment or shared files).
@@ -46,6 +48,7 @@ if (config.AWS_ENABLED) {
       queue: new SqsOrderEventQueue(new SQSClient(awsClientConfig), queueUrl),
       recordOrderEvent: new RecordOrderEvent(new PgOrderEventStore(pool)),
       logger,
+      metrics,
     });
   }
 } else if (config.CONSUMER_ENABLED) {
@@ -58,6 +61,7 @@ const app = buildApp({
   eventPublisher,
   clock: systemClock,
   logger,
+  metrics,
 });
 
 const server = app.listen(config.PORT, () => {

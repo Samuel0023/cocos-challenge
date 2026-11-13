@@ -39,6 +39,7 @@ export function createOrdersRouter(deps: AppDeps): Router {
     eventPublisher: deps.eventPublisher,
     clock: deps.clock,
     logger: deps.logger,
+    metrics: deps.metrics,
   };
   const submitOrder = new SubmitOrder({
     ...common,

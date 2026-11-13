@@ -24,15 +24,15 @@ AWS_ENV := env -u AWS_ACCESS_KEY_ID -u AWS_SECRET_ACCESS_KEY -u AWS_SESSION_TOKE
 	NODE_EXTRA_CA_CERTS=$(AWS_EMULATOR_DIR)/ca.pem \
 	AWS_EC2_METADATA_DISABLED=true
 
-services: ## Start PostgreSQL, Valkey and AWS Emulator (with the topic and queue) in Docker
+services: ## Start PostgreSQL, Valkey, AWS Emulator (with the topic and queue), Prometheus and Grafana
 	mkdir -p .aws-emulator
-	docker compose up -d --wait postgres valkey aws-emulator
+	docker compose up -d --wait postgres valkey aws-emulator prometheus grafana
 	docker compose run --rm aws-init
 
 dev: ## Run the API on the host against the Docker services, with SNS/SQS on AWS Emulator
 	$(AWS_ENV) npm run dev
 
-up: ## Start everything in Docker, API included, with SNS/SQS on AWS Emulator
+up: ## Start everything in Docker (API, Prometheus and Grafana included), SNS/SQS on AWS Emulator
 	mkdir -p .aws-emulator
 	$(COMPOSE_ALL) up -d --build --wait
 

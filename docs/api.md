@@ -187,6 +187,9 @@ Response 200 is the order with `"status": "CANCELLED"`, in the same shape as abo
 
 ## GET /metrics
 
-> Designed in the RFC, not built yet.
+Prometheus metrics in text format (`Content-Type: text/plain; version=0.0.4; charset=utf-8`). Responds 200. The metric list is in [architecture.md](architecture.md#metrics).
 
-Prometheus metrics in text format. Responds 200.
+```text
+orders_total{status="FILLED",side="BUY",type="MARKET"} 2
+http_request_duration_seconds_count{method="GET",route="/users/:userId/portfolio",status_code="200"} 1
+```

@@ -1,3 +1,4 @@
+import type { OrderMetrics } from '../../metrics/metrics.ts';
 import { Money } from '../../shared/domain/money.ts';
 import type { EventPublisher } from '../../shared/events/order-event.ts';
 import { notFound, unprocessable } from '../../shared/http/errors.ts';
@@ -13,7 +14,7 @@ import {
   type OrderType,
 } from '../domain/order.ts';
 import { sizeFromAmount } from '../domain/order-sizing.ts';
-import { publishOrderEvent } from './order-events.ts';
+import { countOrder, publishOrderEvent } from './order-events.ts';
 import {
   DuplicateClientOrderIdError,
   type Instrument,
@@ -45,6 +46,7 @@ export interface SubmitOrderDeps {
   eventPublisher: EventPublisher;
   clock: Clock;
   logger: Logger;
+  metrics: OrderMetrics;
 }
 
 interface ResolvedOrder {
@@ -86,7 +88,10 @@ export class SubmitOrder {
       result = { order: replay(existing, resolved), created: false };
     }
 
-    if (result.created) await publishOrderEvent(this.deps, 'order.created', result.order);
+    if (result.created) {
+      countOrder(this.deps, result.order);
+      await publishOrderEvent(this.deps, 'order.created', result.order);
+    }
     return result.order;
   }
 

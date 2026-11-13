@@ -1,9 +1,10 @@
+import type { OrderMetrics } from '../../metrics/metrics.ts';
 import type { EventPublisher } from '../../shared/events/order-event.ts';
 import { conflict, notFound } from '../../shared/http/errors.ts';
 import type { Logger } from '../../shared/logger.ts';
 import type { Clock } from '../../shared/ports/clock.ts';
 import type { Order } from '../domain/order.ts';
-import { publishOrderEvent } from './order-events.ts';
+import { countOrder, publishOrderEvent } from './order-events.ts';
 import type { OrderRepository, UnitOfWork } from './ports.ts';
 
 export interface CancelOrderDeps {
@@ -12,6 +13,7 @@ export interface CancelOrderDeps {
   eventPublisher: EventPublisher;
   clock: Clock;
   logger: Logger;
+  metrics: OrderMetrics;
 }
 
 export class CancelOrder {
@@ -36,6 +38,7 @@ export class CancelOrder {
       return tx.orders.updateStatus(orderId, 'CANCELLED');
     });
 
+    countOrder(this.deps, cancelled);
     await publishOrderEvent(this.deps, 'order.cancelled', cancelled);
     return cancelled;
   }

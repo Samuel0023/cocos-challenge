@@ -15,7 +15,7 @@ This document lists the steps of each flow as the code runs them. The diagrams a
 7. Look up the idempotency key for this user. If an order exists, compare it with the request: same request returns the stored order (201), different request gives 422. No further steps run.
 8. Check funds or holdings. `BUY` and `CASH_OUT`: `size × price` must not exceed available cash. `SELL`: `size` must not exceed available shares. `CASH_IN` always passes. Available values already subtract the reservations of `NEW` `LIMIT` orders.
 9. Insert the order with its final status and the key in `clientorderid`, then commit.
-10. Publish `order.created` after the commit. A failure is logged and the response is still 201.
+10. Count the order in `orders_total` and publish `order.created` after the commit. A failure of either is logged and the response is still 201. A replay from step 7 is neither counted nor published.
 11. Respond 201 with the order.
 
 | Type       | Funds or holdings check | Stored status          |
@@ -38,7 +38,7 @@ A retry of a `MARKET` order is matched by user, instrument, side and type. Its s
 3. Open a transaction and lock the owner's user row.
 4. Read the order again under the lock. If its status is not `NEW`, respond 409.
 5. Set the status to `CANCELLED` and commit. The reservation is released because it is derived from `NEW` orders.
-6. Publish `order.cancelled` after the commit. A failure is logged.
+6. Count the order in `orders_total` as `CANCELLED` and publish `order.cancelled` after the commit. A failure is logged.
 7. Respond 200 with the order.
 
 ## Portfolio
@@ -81,13 +81,16 @@ The total uses the full cash balance, not the available cash. Percentages and am
 
 ## Event consumer
 
-> Designed in the RFC. The SQS loop is being built; `RecordOrderEvent` and `PgOrderEventStore` exist.
+`SqsOrderEventConsumer`, started by `main.ts` when `AWS_ENABLED=true` and `CONSUMER_ENABLED=true`.
 
-1. Long-poll `order-events-queue` (enabled by `CONSUMER_ENABLED`).
-2. For each message, unwrap the SNS envelope if present and validate the event with Zod.
-3. Insert it into `analytics.order_events` with `ON CONFLICT (event_id) DO NOTHING`.
-4. Delete the message from the queue.
-5. If step 2 or 3 fails, do not delete the message. SQS redelivers it. The unique `event_id` makes redelivery harmless.
+1. Read the queue backlog (`ApproximateNumberOfMessages`) into `order_events_queue_backlog`. A failure is logged and ignored.
+2. Long-poll `order-events-queue` (20 seconds, up to 10 messages). A receive error is logged and the loop waits 5 seconds.
+3. For each message, unwrap the SNS envelope if present and validate the event with Zod.
+4. Insert it into `analytics.order_events` with `ON CONFLICT (event_id) DO NOTHING`.
+5. Delete the message from the queue and count it in `order_events_processed_total`.
+6. If step 3, 4 or 5 fails, count it in `order_events_failed_total` and do not delete it. SQS redelivers it after the 30-second visibility timeout; after 5 receives it moves to `order-events-dlq`. The unique `event_id` makes redelivery harmless.
+
+Each message's time from step 3 to 5 or 6 goes to `order_event_processing_duration_seconds`.
 
 ## Statuses
 

@@ -1,6 +1,6 @@
 # Cocos Challenge API
 
-REST API for a broker: portfolio, instrument search and order submission. Built with Node.js, Express 5 and TypeScript, hexagonal architecture, on the PostgreSQL schema provided by the challenge.
+REST API for a broker: portfolio, instrument search and order submission, with order events on SNS/SQS and Prometheus metrics. Built with Node.js, Express 5 and TypeScript, hexagonal architecture, on the PostgreSQL schema provided by the challenge.
 
 ## Prerequisites
 
@@ -12,18 +12,21 @@ REST API for a broker: portfolio, instrument search and order submission. Built 
 
 ```sh
 npm ci
-make services   # PostgreSQL and Valkey in Docker
-make dev        # API on the host, http://localhost:3000
+make services   # PostgreSQL, Valkey, AWS Emulator, Prometheus and Grafana in Docker
+make dev        # API on the host, http://localhost:3000, SNS/SQS on AWS Emulator
 ```
 
-| Command         | What it does                                  |
-| --------------- | --------------------------------------------- |
-| `make services` | Starts PostgreSQL and Valkey in Docker        |
-| `make dev`      | Runs the API on the host with file watching   |
-| `make up`       | Starts everything in Docker, API included     |
-| `make test`     | Runs unit and functional tests (needs Docker) |
-| `make lint`     | Runs ESLint and Prettier                      |
-| `make down`     | Stops and removes the containers              |
+| Command         | What it does                                                                      |
+| --------------- | --------------------------------------------------------------------------------- |
+| `make services` | Starts PostgreSQL, Valkey, AWS Emulator (topic and queue), Prometheus and Grafana |
+| `make dev`      | Runs the API on the host with file watching, events on AWS Emulator               |
+| `make up`       | Starts everything in Docker, API included                                         |
+| `make test`     | Runs unit and functional tests (needs Docker)                                     |
+| `make test-aws` | Runs the SNS to SQS integration test against AWS Emulator (after `make services`) |
+| `make lint`     | Runs ESLint and Prettier                                                          |
+| `make down`     | Stops and removes the containers                                                  |
+
+Run `make down` before switching between `make services` and `make up`.
 
 Check it works:
 
@@ -43,8 +46,18 @@ curl http://localhost:3000/users/1/portfolio
 | `POST /orders`                       | Submits an order or a cash transfer         | 201, 400, 404, 422 |
 | `POST /orders/:orderId/cancel`       | Cancels an order in `NEW`                   | 200, 400, 404, 409 |
 | `GET /health`                        | Checks the database connection              | 200, 503           |
+| `GET /metrics`                       | Prometheus metrics                          | 200                |
 
 `POST /orders` requires an `Idempotency-Key` header with a UUID. Details are in [docs/api.md](docs/api.md).
+
+## Events and metrics
+
+Each stored or cancelled order is published to the SNS topic `order-events`. A consumer loop inside the API reads the SQS queue `order-events-queue` and stores events in `analytics.order_events`. Locally, SNS and SQS run on AWS Emulator.
+
+| Tool       | URL                                         | Notes                                        |
+| ---------- | ------------------------------------------- | -------------------------------------------- |
+| Grafana    | http://localhost:3001/d/cocos-api/cocos-api | Dashboard "Cocos API", anonymous read access |
+| Prometheus | http://localhost:9090                       | Scrapes the API every 5 seconds              |
 
 ## Tests
 

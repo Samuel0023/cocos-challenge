@@ -16,7 +16,8 @@ Reference for agents. Each use case is a class in `src/*/application/`. Step-by-
 - The funds check lives in `src/orders/domain/funds-policy.ts`. The status comes from `initialStatus` in `src/orders/domain/order.ts`.
 - Size from an amount is `Money.wholeUnitsAt`, through `sizeFromAmount`.
 - Events go out through `publishOrderEvent`, after commit, and never throw.
+- Orders are counted through `countOrder` (in `order-events.ts`), after commit, only when stored or cancelled. It never throws.
 - Position math is in `src/portfolio/domain/position-valuation.ts`.
 - Use cases throw `AppError` helpers (`notFound`, `conflict`, `unprocessable`, `badRequest`) from `src/shared/http/errors.ts`. The error middleware turns them into responses.
 
-`RecordOrderEvent` is called by the SQS consumer loop, which is part of the events work and may not exist yet. See [docs/architecture.md](../docs/architecture.md).
+`RecordOrderEvent` is called by `SqsOrderEventConsumer` in `src/events/sqs-order-event-consumer.ts`, which also records the consumer metrics. See [docs/flows.md](../docs/flows.md), section "Event consumer".

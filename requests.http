@@ -1,4 +1,4 @@
-# VS Code REST Client file. Start the API first (make services, make dev).
+# VS Code REST Client file. Start the API first (make services, make dev, or make up).
 # Seed ids: PAMP = 47, METR = 54, BMA = 31, PGR (no market data) = 3, ARS = 66.
 
 @baseUrl = http://localhost:3000
@@ -211,3 +211,6 @@ POST {{baseUrl}}/orders/abc/cancel
 ### Cancel an order that is not NEW (409)
 # Order 1 of the seed is FILLED.
 POST {{baseUrl}}/orders/1/cancel
+
+### Prometheus metrics (orders_total, request latency, consumer metrics)
+GET {{baseUrl}}/metrics

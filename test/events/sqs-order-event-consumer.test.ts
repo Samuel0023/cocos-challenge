@@ -6,6 +6,7 @@ import {
   type OrderEventQueue,
   type QueueMessage,
 } from '../../src/events/sqs-order-event-consumer.ts';
+import type { OrderEventMetrics } from '../../src/metrics/metrics.ts';
 import type { OrderEvent } from '../../src/shared/events/order-event.ts';
 import { silentLogger } from '../../src/shared/logger.ts';
 import { createTestApp, type TestApp } from '../support/test-app.ts';
@@ -145,5 +146,68 @@ describe('SqsOrderEventConsumer', () => {
     await new Promise((resolve) => setTimeout(resolve, 60));
 
     expect(queue.receives).toBe(receivesAtStop);
+  });
+
+  it('reports processed and failed messages, their latency and the queue backlog', async () => {
+    const queue = new FakeQueue();
+    const backlogs = [3, 1];
+    const backlog = Object.assign(queue, {
+      approximateBacklog: async () => backlogs.shift() ?? 0,
+    });
+    const recorded = {
+      processed: 0,
+      failed: 0,
+      durations: [] as number[],
+      backlog: [] as number[],
+    };
+    const metrics: OrderEventMetrics = {
+      orderEventProcessed: (seconds) => {
+        recorded.processed++;
+        recorded.durations.push(seconds);
+      },
+      orderEventFailed: (seconds) => {
+        recorded.failed++;
+        recorded.durations.push(seconds);
+      },
+      orderEventsBacklog: (messages) => recorded.backlog.push(messages),
+    };
+    const id = '1d5e6f7a-0000-4000-8000-000000000004';
+    queue.batches.push([
+      { body: 'not an order event', receiptHandle: 'bad' },
+      { body: JSON.stringify(orderEvent(id)), receiptHandle: 'good' },
+    ]);
+    const consumer = new SqsOrderEventConsumer({
+      queue: backlog,
+      recordOrderEvent: record,
+      logger: silentLogger,
+      errorBackoffMs: 10,
+      metrics,
+    });
+
+    consumer.start();
+    await until(() => recorded.processed === 1 && recorded.backlog.length >= 2);
+    await consumer.stop();
+
+    expect(recorded.failed).toBe(1);
+    expect(recorded.durations).toHaveLength(2);
+    expect(recorded.durations.every((seconds) => seconds >= 0)).toBe(true);
+    expect(recorded.backlog.slice(0, 2)).toEqual([3, 1]);
+  });
+
+  it('keeps consuming when the backlog cannot be read', async () => {
+    const queue = Object.assign(new FakeQueue(), {
+      approximateBacklog: async (): Promise<number> => {
+        throw new Error('attributes unavailable');
+      },
+    });
+    const id = '1d5e6f7a-0000-4000-8000-000000000005';
+    queue.batches.push([{ body: JSON.stringify(orderEvent(id)), receiptHandle: 'r-5' }]);
+    const consumer = consumerFor(queue);
+
+    consumer.start();
+    await until(() => queue.deleted.length === 1);
+    await consumer.stop();
+
+    expect(await storedIds()).toContain(id);
   });
 });

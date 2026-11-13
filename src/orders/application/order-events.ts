@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { EventPublisher, OrderEventType } from '../../shared/events/order-event.ts';
+import type { OrderMetrics } from '../../metrics/metrics.ts';
 import type { Logger } from '../../shared/logger.ts';
 import type { Clock } from '../../shared/ports/clock.ts';
 import type { Order } from '../domain/order.ts';
@@ -28,5 +29,14 @@ export async function publishOrderEvent(
     });
   } catch (err) {
     deps.logger.error({ err, orderId: order.id, type }, 'order event not published');
+  }
+}
+
+/** Counts a stored order or a cancellation; a failure is logged and never reaches the caller. */
+export function countOrder(deps: { metrics: OrderMetrics; logger: Logger }, order: Order): void {
+  try {
+    deps.metrics.orderRecorded({ status: order.status, side: order.side, type: order.type });
+  } catch (err) {
+    deps.logger.error({ err, orderId: order.id }, 'order not counted in metrics');
   }
 }

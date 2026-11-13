@@ -27,7 +27,7 @@ This document records the decisions D-01 to D-24, the schema changes, the discar
 | D-19 | Cache expiry                  | TTL of 60 seconds for the latest price and 5 minutes for search. If Valkey fails, read PostgreSQL        | Market data does not change here; the cache is best-effort |
 | D-20 | Idempotency                   | Required `Idempotency-Key` header on `POST /orders`, stored in `orders.clientorderid`                    | Safe client retries                                        |
 | D-21 | Context for AI agents         | `AGENTS.md`, a `CLAUDE.md` that points to it, the `agents/` folder and the `run-service` skill           | One source of context for any tool                         |
-| D-22 | Grafana dashboard             | Datasource and dashboard provisioned, with anonymous read-only access                                    | Works right after startup (metrics are not built yet)      |
+| D-22 | Grafana dashboard             | Datasource and dashboard provisioned, with anonymous read-only access                                    | Works right after startup                                  |
 | D-23 | Continuous integration        | GitHub Actions on each push and pull request: lint, type check and tests                                 | Catches regressions early                                  |
 | D-24 | Linters and formatting        | Recommended ESLint, typescript-eslint, Prettier and `tsconfig` in `strict` mode. No custom rules         | Standard tools, no maintenance                             |
 

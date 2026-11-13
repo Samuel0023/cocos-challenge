@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import pg from 'pg';
 import { inject } from 'vitest';
 import { buildApp, type AppDeps } from '../../src/app.ts';
+import { PrometheusMetrics } from '../../src/metrics/prometheus-metrics.ts';
 import { InMemoryEventPublisher } from '../../src/shared/events/in-memory-event-publisher.ts';
 import { InMemoryCache } from '../../src/shared/infra/cache/in-memory-cache.ts';
 import { createPool } from '../../src/shared/infra/postgres/db.ts';
@@ -37,6 +38,8 @@ export async function createTestApp(overrides: Partial<AppDeps> = {}): Promise<T
     eventPublisher: events,
     clock: systemClock,
     logger: silentLogger,
+    // No Node default metrics: every test file builds its own app.
+    metrics: new PrometheusMetrics({ defaultMetrics: false }),
     ...overrides,
   });
 

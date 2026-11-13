@@ -9,6 +9,7 @@ Reference for agents. Full examples: [docs/api.md](../docs/api.md). Runnable req
 | `GET /instruments?q=&limit=&offset=` | 200     | 400           |
 | `POST /orders`                       | 201     | 400, 404, 422 |
 | `POST /orders/:orderId/cancel`       | 200     | 400, 404, 409 |
+| `GET /metrics`                       | 200     | none          |
 
 ## Rules
 
@@ -18,4 +19,5 @@ Reference for agents. Full examples: [docs/api.md](../docs/api.md). Runnable req
 - Money in responses is a string with two decimals. Order `size` and ids are numbers.
 - Error body: `{ "error": { "code", "message", "details"? } }`.
 - Search `limit` is 1 to 100 (default 20).
+- `GET /metrics` is Prometheus text. Metric names and labels are a contract for the Grafana dashboard: renaming one means updating `grafana/dashboards/cocos-api.json`.
 - Changing a status code, field name or required header is a breaking change. Update `docs/api.md`, `requests.http` and the tests together.

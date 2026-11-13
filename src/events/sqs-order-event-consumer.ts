@@ -1,4 +1,10 @@
-import { DeleteMessageCommand, ReceiveMessageCommand, type SQSClient } from '@aws-sdk/client-sqs';
+import {
+  DeleteMessageCommand,
+  GetQueueAttributesCommand,
+  ReceiveMessageCommand,
+  type SQSClient,
+} from '@aws-sdk/client-sqs';
+import { noopMetrics, type OrderEventMetrics } from '../metrics/metrics.ts';
 import type { Logger } from '../shared/logger.ts';
 import type { RecordOrderEvent } from './record-order-event.ts';
 
@@ -7,11 +13,13 @@ export interface QueueMessage {
   receiptHandle: string;
 }
 
-/** The two queue operations the consumer needs; the loop is tested against a fake. */
+/** The queue operations the consumer needs; the loop is tested against a fake. */
 export interface OrderEventQueue {
   /** Long poll. Rejects when `signal` aborts. */
   receive(signal: AbortSignal): Promise<QueueMessage[]>;
   delete(receiptHandle: string): Promise<void>;
+  /** Approximate number of messages waiting; optional, only feeds the backlog metric. */
+  approximateBacklog?(signal: AbortSignal): Promise<number>;
 }
 
 export class SqsOrderEventQueue implements OrderEventQueue {
@@ -44,6 +52,17 @@ export class SqsOrderEventQueue implements OrderEventQueue {
       new DeleteMessageCommand({ QueueUrl: this.queueUrl, ReceiptHandle: receiptHandle }),
     );
   }
+
+  async approximateBacklog(signal: AbortSignal): Promise<number> {
+    const output = await this.client.send(
+      new GetQueueAttributesCommand({
+        QueueUrl: this.queueUrl,
+        AttributeNames: ['ApproximateNumberOfMessages'],
+      }),
+      { abortSignal: signal },
+    );
+    return Number(output.Attributes?.ApproximateNumberOfMessages ?? 0);
+  }
 }
 
 export interface SqsOrderEventConsumerOptions {
@@ -52,6 +71,7 @@ export interface SqsOrderEventConsumerOptions {
   logger: Logger;
   /** Pause after a failed receive, so an unreachable queue is not hammered. */
   errorBackoffMs?: number;
+  metrics?: OrderEventMetrics;
 }
 
 /**
@@ -64,6 +84,7 @@ export class SqsOrderEventConsumer {
   private readonly recordOrderEvent: RecordOrderEvent;
   private readonly logger: Logger;
   private readonly errorBackoffMs: number;
+  private readonly metrics: OrderEventMetrics;
   private controller: AbortController | undefined;
   private loop: Promise<void> | undefined;
 
@@ -72,6 +93,7 @@ export class SqsOrderEventConsumer {
     this.recordOrderEvent = options.recordOrderEvent;
     this.logger = options.logger;
     this.errorBackoffMs = options.errorBackoffMs ?? 5_000;
+    this.metrics = options.metrics ?? noopMetrics;
   }
 
   start(): void {
@@ -92,6 +114,8 @@ export class SqsOrderEventConsumer {
 
   private async run(signal: AbortSignal): Promise<void> {
     while (!signal.aborted) {
+      await this.refreshBacklog(signal);
+      if (signal.aborted) break;
       let messages: QueueMessage[];
       try {
         messages = await this.queue.receive(signal);
@@ -106,14 +130,37 @@ export class SqsOrderEventConsumer {
     this.logger.info('order events consumer stopped');
   }
 
+  /** Once per poll; a failure is logged and ignored, the gauge keeps its last value. */
+  private async refreshBacklog(signal: AbortSignal): Promise<void> {
+    if (!this.queue.approximateBacklog) return;
+    try {
+      this.metrics.orderEventsBacklog(await this.queue.approximateBacklog(signal));
+    } catch (error) {
+      if (!signal.aborted) this.logger.warn({ err: error }, 'order events backlog not read');
+    }
+  }
+
   private async handle(message: QueueMessage): Promise<void> {
+    const start = performance.now();
+    const elapsed = () => (performance.now() - start) / 1000;
     try {
       const event = await this.recordOrderEvent.execute(message.body);
       await this.queue.delete(message.receiptHandle);
+      this.record(() => this.metrics.orderEventProcessed(elapsed()));
       this.logger.debug({ eventId: event.eventId, type: event.type }, 'order event recorded');
     } catch (error) {
       // Not deleted: SQS makes it visible again after the visibility timeout.
+      this.record(() => this.metrics.orderEventFailed(elapsed()));
       this.logger.error({ err: error }, 'order event not recorded');
+    }
+  }
+
+  /** Metrics never break the loop. */
+  private record(update: () => void): void {
+    try {
+      update();
+    } catch (error) {
+      this.logger.warn({ err: error }, 'order event metric not recorded');
     }
   }
 }
