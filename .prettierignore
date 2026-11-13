@@ -3,3 +3,4 @@ coverage
 db/database.sql
 odd
 package-lock.json
+docs/diagrams
