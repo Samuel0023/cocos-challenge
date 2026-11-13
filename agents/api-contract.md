@@ -14,10 +14,10 @@ Reference for agents. Full examples: [docs/api.md](../docs/api.md). Runnable req
 ## Rules
 
 - `POST /orders` needs `Idempotency-Key: <uuid>`.
-- `POST /orders` body: `userId`, `side`, and either `size` or `amount`. `BUY` and `SELL` also need `instrumentId` and `type`. `LIMIT` needs `price`; `MARKET` and transfers must not send it.
+- `POST /orders` body: `userId`, `side`, and either `size` or `amount` (transfers: `amount` only). `BUY` and `SELL` also need `instrumentId` and `type`. `LIMIT` needs `price`; `MARKET` and transfers must not send it.
 - A stored order always returns 201, including `REJECTED` (missing cash or shares).
 - Money in responses is a string with two decimals. Ids are numbers. Order `size` is an integer for `BUY`/`SELL` and a two-decimal string for `CASH_IN`/`CASH_OUT`.
-- Transfer `size` or `amount` accepts cents (up to two decimals). Share `size` must be a JSON integer; a fraction is 400.
+- A transfer takes pesos in `amount` only, with cents (up to two decimals); `size` on a transfer is 400. Share `size` must be a JSON integer; a fraction is 400.
 - Error body: `{ "error": { "code", "message", "details"? } }`.
 - Search `limit` is 1 to 100 (default 20).
 - `GET /metrics` is Prometheus text. Metric names and labels are a contract for the Grafana dashboard: renaming one means updating `docker/grafana/dashboards/cocos-api.json`.

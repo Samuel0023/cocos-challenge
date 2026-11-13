@@ -231,7 +231,7 @@ describe('POST /orders', () => {
       ['amount with three decimals', { side: 'BUY', type: 'MARKET', amount: '10.123' }],
       ['unknown side', { side: 'SHORT', type: 'MARKET', size: 1 }],
       ['missing type on a BUY', { side: 'BUY', size: 1 }],
-      ['LIMIT on a transfer', { side: 'CASH_IN', type: 'LIMIT', size: 1, price: '1' }],
+      ['LIMIT on a transfer', { side: 'CASH_IN', type: 'LIMIT', amount: 1, price: '1' }],
     ])('answers 400 for %s', async (_name, body) => {
       await expectRejectedRequest({ userId: 2, instrumentId: PAMP, ...body }, 400);
     });
@@ -273,7 +273,10 @@ describe('POST /orders', () => {
         { userId: 1, instrumentId: ARS, side: 'BUY', type: 'LIMIT', size: 1, price: '1' },
         422,
       );
-      await expectRejectedRequest({ userId: 1, instrumentId: PAMP, side: 'CASH_IN', size: 1 }, 422);
+      await expectRejectedRequest(
+        { userId: 1, instrumentId: PAMP, side: 'CASH_IN', amount: 1 },
+        422,
+      );
     });
   });
 
@@ -302,8 +305,8 @@ describe('POST /orders', () => {
 
     it('rejects a CASH_OUT above the balance and fills one within it', async () => {
       const userId = await newUser('1000');
-      const above = await post({ userId, side: 'CASH_OUT', instrumentId: ARS, size: 1001 });
-      const within = await post({ userId, side: 'CASH_OUT', type: 'MARKET', size: 1000 });
+      const above = await post({ userId, side: 'CASH_OUT', instrumentId: ARS, amount: 1001 });
+      const within = await post({ userId, side: 'CASH_OUT', type: 'MARKET', amount: 1000 });
 
       expect(above.status).toBe(201);
       expect(above.body).toMatchObject({ side: 'CASH_OUT', status: 'REJECTED', size: '1001.00' });

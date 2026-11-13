@@ -116,15 +116,15 @@ Request: `GET /instruments?q=pamp&limit=2`
 
 Submits an order or a cash transfer. The header `Idempotency-Key: <uuid>` is required.
 
-| Field          | Type    | Rule                                                                                                                                             |
-| -------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `userId`       | integer | Required                                                                                                                                         |
-| `instrumentId` | integer | Required for `BUY` and `SELL`. Transfers use the ARS instrument when omitted                                                                     |
-| `side`         | string  | `BUY`, `SELL`, `CASH_IN` or `CASH_OUT`                                                                                                           |
-| `type`         | string  | `MARKET` or `LIMIT`. Required for `BUY` and `SELL`. Transfers are always `MARKET`                                                                |
-| `size`         | number  | `BUY`/`SELL`: whole shares (JSON integer). Transfers: pesos, up to 2 decimals                                                                    |
-| `amount`       | decimal | Pesos. `BUY`/`SELL`: size is the whole part of `amount / price`. Transfers: size = `amount`, cents kept. Send exactly one of `size` and `amount` |
-| `price`        | decimal | Required for `LIMIT`. Not allowed for `MARKET` or transfers                                                                                      |
+| Field          | Type    | Rule                                                                                                                                                                                                        |
+| -------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `userId`       | integer | Required                                                                                                                                                                                                    |
+| `instrumentId` | integer | Required for `BUY` and `SELL`. Transfers use the ARS instrument when omitted                                                                                                                                |
+| `side`         | string  | `BUY`, `SELL`, `CASH_IN` or `CASH_OUT`                                                                                                                                                                      |
+| `type`         | string  | `MARKET` or `LIMIT`. Required for `BUY` and `SELL`. Transfers are always `MARKET`                                                                                                                           |
+| `size`         | number  | Whole shares (JSON integer). `BUY` and `SELL` only; a transfer with `size` is 400                                                                                                                           |
+| `amount`       | decimal | Pesos, up to 2 decimals. `BUY`/`SELL`: invests up to this much, size is the whole part of `amount / price`; send exactly one of `size` and `amount`. Transfers: required, it is the pesos moved, cents kept |
+| `price`        | decimal | Required for `LIMIT`. Not allowed for `MARKET` or transfers                                                                                                                                                 |
 
 Request:
 
@@ -152,7 +152,9 @@ Response 201:
 }
 ```
 
-In responses, `size` is a JSON integer for `BUY` and `SELL` and a decimal string with two places for `CASH_IN` and `CASH_OUT`. `size` and `amount` of a transfer both mean pesos and may carry cents (up to two decimals; more is 400). A fractional share size is 400.
+In responses, `size` is a JSON integer for `BUY` and `SELL` and a decimal string with two places for `CASH_IN` and `CASH_OUT`. A transfer takes its pesos in `amount`, with up to two decimals (more is 400), and stores them in the `size` column with price 1. A transfer sent with `size` is 400, because `size` counts shares. A fractional share size is 400.
+
+Limits follow the columns: a transfer `amount` goes up to 999999999999999999.99 (`size` is `numeric(20, 2)`); an `amount` or `price` of a `BUY` or `SELL` goes up to 99999999.99 (`price` is `numeric(10, 2)`).
 
 Transfer with cents:
 

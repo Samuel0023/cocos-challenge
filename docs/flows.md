@@ -40,7 +40,7 @@ sequenceDiagram
 2. Validate the body with Zod (shape, ranges, exactly one of `size` or `amount`, `price` rules). Otherwise respond 400.
 3. Resolve the instrument. `CASH_IN` and `CASH_OUT` default to the ARS instrument. Unknown instrument: 404. `BUY` or `SELL` on ARS, or a transfer on another instrument: 422.
 4. Resolve the price. `MARKET` uses the latest `close` (cache first, then PostgreSQL); no market data gives 422. `LIMIT` uses the price sent. Transfers use 1.
-5. Resolve the size. `size` is used as sent. For `BUY` and `SELL` it is whole shares; with `amount`, size is the whole part of `amount / price`, zero gives 422 and above 2147483647 gives 422. For transfers, size is the pesos sent in `size` or `amount`, cents included (price 1).
+5. Resolve the size. `size` is used as sent. For `BUY` and `SELL` it is whole shares; with `amount`, size is the whole part of `amount / price`, zero gives 422 and above 2147483647 gives 422. For transfers, size is the pesos sent in `amount`, cents included (price 1); a transfer sent with `size` is 400.
 6. Open a transaction and lock the user row with `SELECT ... FOR UPDATE` (`READ COMMITTED`). Unknown user: 404.
 7. Look up the idempotency key for this user. If an order exists, compare it with the request: same request returns the stored order (201), different request gives 422. No further steps run.
 8. Check funds or holdings. `BUY` and `CASH_OUT`: `size × price` must not exceed available cash, compared exactly in cents. `SELL`: `size` must not exceed available shares. `CASH_IN` always passes. Available values already subtract the reservations of `NEW` `LIMIT` orders.
@@ -57,7 +57,7 @@ sequenceDiagram
 | `CASH_IN`  | Not applicable          | `FILLED`               |
 | `CASH_OUT` | Passes or fails         | `FILLED` or `REJECTED` |
 
-A retry of a `MARKET` order is matched by user, instrument, side and type. Its size (when sent as `amount`) and price are not compared, because they depend on a price that may have moved. A `LIMIT` order, a transfer or an order sent with `size` also compares size (cents included for transfers), and a `LIMIT` compares price.
+A retry of a `MARKET` order is matched by user, instrument, side and type. Its size (when sent as `amount`) and price are not compared, because they depend on a price that may have moved. A `LIMIT` order, a transfer or an order sent with `size` also compares size (for a transfer, its `amount` with cents), and a `LIMIT` compares price.
 
 ## Cancel order
 

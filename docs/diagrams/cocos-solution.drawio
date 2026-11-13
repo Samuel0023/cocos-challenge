@@ -556,8 +556,8 @@
         <mxCell id="submit-e400" value="&lt;i style=&quot;font-size:10px&quot;&gt;Error middleware&lt;/i&gt;&lt;br&gt;400 Bad Request&lt;br&gt;nothing is stored" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
           <mxGeometry x="920" y="430" width="260" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="submit-n_valid" value="Validated: fields, types, size or amount but not both, LIMIT with price, MARKET without price" style="shape=note;whiteSpace=wrap;html=1;size=14;align=left;spacingLeft=8;spacingRight=8;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="1">
-          <mxGeometry x="40" y="430" width="300" height="80" as="geometry" />
+        <mxCell id="submit-n_valid" value="Validated: fields, types, size or amount but not both (transfers: amount only), LIMIT with price, MARKET without price" style="shape=note;whiteSpace=wrap;html=1;size=14;align=left;spacingLeft=8;spacingRight=8;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="40" y="420" width="300" height="100" as="geometry" />
         </mxCell>
         <mxCell id="submit-exists" value="&lt;i style=&quot;font-size:10px&quot;&gt;SubmitOrder (use case) + AccountReader, InstrumentRepository&lt;/i&gt;&lt;br&gt;Do the user and instrument exist?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
           <mxGeometry x="490" y="570" width="300" height="200" as="geometry" />
@@ -586,7 +586,7 @@
         <mxCell id="submit-e422b" value="&lt;i style=&quot;font-size:10px&quot;&gt;Error middleware&lt;/i&gt;&lt;br&gt;422 Unprocessable Entity&lt;br&gt;nothing is stored" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
           <mxGeometry x="920" y="1430" width="260" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="submit-qty" value="&lt;i style=&quot;font-size:10px&quot;&gt;OrderSizing (domain)&lt;/i&gt;&lt;br&gt;Resolve quantity: size, or integer part of amount / price" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+        <mxCell id="submit-qty" value="&lt;i style=&quot;font-size:10px&quot;&gt;OrderSizing (domain)&lt;/i&gt;&lt;br&gt;Resolve quantity: size, or integer part of amount / price. Transfers: pesos in amount, with cents" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
           <mxGeometry x="450" y="1590" width="380" height="80" as="geometry" />
         </mxCell>
         <mxCell id="submit-zero" value="&lt;i style=&quot;font-size:10px&quot;&gt;OrderSizing (domain)&lt;/i&gt;&lt;br&gt;Quantity = 0?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">

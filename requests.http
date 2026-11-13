@@ -84,7 +84,7 @@ POST {{baseUrl}}/orders
 Idempotency-Key: {{$guid}}
 Content-Type: application/json
 
-{ "userId": 2, "side": "CASH_IN", "size": 100000 }
+{ "userId": 2, "side": "CASH_IN", "amount": 100000 }
 
 ### Cash in with cents (size answers "2777.55")
 POST {{baseUrl}}/orders
@@ -93,12 +93,19 @@ Content-Type: application/json
 
 { "userId": 2, "side": "CASH_IN", "amount": "2777.55" }
 
+### Transfer sent with size (400: transfers take pesos in amount)
+POST {{baseUrl}}/orders
+Idempotency-Key: {{$guid}}
+Content-Type: application/json
+
+{ "userId": 2, "side": "CASH_IN", "size": 100 }
+
 ### Cash out
 POST {{baseUrl}}/orders
 Idempotency-Key: {{$guid}}
 Content-Type: application/json
 
-{ "userId": 2, "side": "CASH_OUT", "size": 1000 }
+{ "userId": 2, "side": "CASH_OUT", "amount": 1000 }
 
 ### Retry with the same Idempotency-Key (returns the same order)
 # Replace the key with one of your own and send this request twice.
@@ -106,7 +113,7 @@ POST {{baseUrl}}/orders
 Idempotency-Key: 5b3f1c1e-9f0a-4c1d-8a55-2f4e6d7c8b90
 Content-Type: application/json
 
-{ "userId": 3, "side": "CASH_IN", "size": 500 }
+{ "userId": 3, "side": "CASH_IN", "amount": 500 }
 
 ### Same key, different body (422)
 # Send after the previous request.
@@ -114,7 +121,7 @@ POST {{baseUrl}}/orders
 Idempotency-Key: 5b3f1c1e-9f0a-4c1d-8a55-2f4e6d7c8b90
 Content-Type: application/json
 
-{ "userId": 3, "side": "CASH_IN", "size": 900 }
+{ "userId": 3, "side": "CASH_IN", "amount": 900 }
 
 ### Missing Idempotency-Key (400)
 POST {{baseUrl}}/orders

@@ -28,9 +28,9 @@ describe('POST /orders with cents', () => {
     expect(await orderRow(res.body.id)).toMatchObject({ size: '2777.55', price: '1.00' });
   });
 
-  it('stores a CASH_IN by size with cents', async () => {
+  it('stores a CASH_IN of less than one peso', async () => {
     const userId = await newUser();
-    const res = await post({ userId, side: 'CASH_IN', size: '0.50' });
+    const res = await post({ userId, side: 'CASH_IN', amount: '0.50' });
 
     expect(res.status).toBe(201);
     expect(res.body).toMatchObject({ status: 'FILLED', size: '0.50', price: '1.00' });
@@ -40,7 +40,7 @@ describe('POST /orders with cents', () => {
   it('fills a CASH_OUT of exactly the available cash and rejects one cent more', async () => {
     const userId = await newUser('100.25');
     const above = await post({ userId, side: 'CASH_OUT', amount: '100.26' });
-    const exact = await post({ userId, side: 'CASH_OUT', size: 100.25 });
+    const exact = await post({ userId, side: 'CASH_OUT', amount: 100.25 });
 
     expect(above.status).toBe(201);
     expect(above.body).toMatchObject({ status: 'REJECTED', size: '100.26' });
@@ -51,7 +51,7 @@ describe('POST /orders with cents', () => {
 
   it.each([
     ['a transfer amount with three decimals', { side: 'CASH_IN', amount: '10.123' }],
-    ['a transfer size with three decimals', { side: 'CASH_IN', size: '10.123' }],
+    ['a transfer amount with three decimals', { side: 'CASH_IN', amount: '10.123' }],
     ['a fractional BUY size', { instrumentId: PAMP, side: 'BUY', type: 'MARKET', size: 1.5 }],
     [
       'a BUY size with cents as a string',
