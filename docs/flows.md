@@ -1,6 +1,6 @@
 # Flows
 
-This document lists the steps of each flow as the code runs them. The diagrams are on pages "Flujo: enviar orden", "Flujo: cancelar orden", "Flujo: portfolio", "Flujo: buscar activos" and "Flujo: consumidor de eventos" of `docs/diagrams/cocos-solution.drawio`.
+This document lists the steps of each flow as the code runs them. The diagrams are on pages "Flow: submit order", "Flow: cancel order", "Flow: portfolio", "Flow: search instruments" and "Flow: event consumer" of `docs/diagrams/cocos-solution.drawio`.
 
 ## Submit order
 
@@ -40,10 +40,10 @@ sequenceDiagram
 2. Validate the body with Zod (shape, ranges, exactly one of `size` or `amount`, `price` rules). Otherwise respond 400.
 3. Resolve the instrument. `CASH_IN` and `CASH_OUT` default to the ARS instrument. Unknown instrument: 404. `BUY` or `SELL` on ARS, or a transfer on another instrument: 422.
 4. Resolve the price. `MARKET` uses the latest `close` (cache first, then PostgreSQL); no market data gives 422. `LIMIT` uses the price sent. Transfers use 1.
-5. Resolve the size. `size` is used as sent. With `amount`, size is the whole part of `amount / price`; zero gives 422. A size above 2147483647 gives 422.
+5. Resolve the size. `size` is used as sent. For `BUY` and `SELL` it is whole shares; with `amount`, size is the whole part of `amount / price`, zero gives 422 and above 2147483647 gives 422. For transfers, size is the pesos sent in `size` or `amount`, cents included (price 1).
 6. Open a transaction and lock the user row with `SELECT ... FOR UPDATE` (`READ COMMITTED`). Unknown user: 404.
 7. Look up the idempotency key for this user. If an order exists, compare it with the request: same request returns the stored order (201), different request gives 422. No further steps run.
-8. Check funds or holdings. `BUY` and `CASH_OUT`: `size × price` must not exceed available cash. `SELL`: `size` must not exceed available shares. `CASH_IN` always passes. Available values already subtract the reservations of `NEW` `LIMIT` orders.
+8. Check funds or holdings. `BUY` and `CASH_OUT`: `size × price` must not exceed available cash, compared exactly in cents. `SELL`: `size` must not exceed available shares. `CASH_IN` always passes. Available values already subtract the reservations of `NEW` `LIMIT` orders.
 9. Insert the order with its final status and the key in `clientorderid`, then commit.
 10. Count the order in `orders_total` and publish `order.created` after the commit. A failure of either is logged and the response is still 201. A replay from step 7 is neither counted nor published.
 11. Respond 201 with the order.
@@ -57,7 +57,7 @@ sequenceDiagram
 | `CASH_IN`  | Not applicable          | `FILLED`               |
 | `CASH_OUT` | Passes or fails         | `FILLED` or `REJECTED` |
 
-A retry of a `MARKET` order is matched by user, instrument, side and type. Its size (when sent as `amount`) and price are not compared, because they depend on a price that may have moved. A `LIMIT` order or an order sent with `size` also compares size, and a `LIMIT` compares price.
+A retry of a `MARKET` order is matched by user, instrument, side and type. Its size (when sent as `amount`) and price are not compared, because they depend on a price that may have moved. A `LIMIT` order, a transfer or an order sent with `size` also compares size (cents included for transfers), and a `LIMIT` compares price.
 
 ## Cancel order
 
@@ -228,6 +228,7 @@ Error body: `{ "error": { "code", "message", "details"? } }`. Codes are `BAD_REQ
 | ---------------------------------------------------------------- | ------ |
 | Missing fields, wrong types, `size` or `amount` of zero or below | 400    |
 | `size` and `amount` together, or neither                         | 400    |
+| Fractional share size, or more than two decimals                 | 400    |
 | `LIMIT` without `price`, or `MARKET` with `price`                | 400    |
 | Missing or non-UUID `Idempotency-Key`                            | 400    |
 | Malformed JSON body                                              | 400    |

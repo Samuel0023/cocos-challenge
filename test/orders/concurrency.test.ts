@@ -195,7 +195,8 @@ describe('orders under concurrency', () => {
       post({ userId, instrumentId: PAMP, side: 'BUY', type: 'MARKET', size: 2 }, key),
       post({ userId: 999999, instrumentId: PAMP, side: 'BUY', type: 'MARKET', size: 1 }),
       post({ userId, instrumentId: 66, side: 'BUY', type: 'MARKET', size: 1 }),
-      post({ userId, side: 'CASH_IN', amount: '0.5' }),
+      post({ userId, side: 'CASH_IN', amount: '0.501' }),
+      post({ userId, side: 'CASH_IN', size: 2147483647.01 }),
       post({ userId, instrumentId: PAMP, side: 'BUY', type: 'LIMIT', size: 1, price: '0.001' }),
       post({ userId, instrumentId: PAMP, side: 'BUY', type: 'LIMIT', size: 1, price: 1e21 }),
     ];

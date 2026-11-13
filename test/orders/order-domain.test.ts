@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { hasFundsFor } from '../../src/orders/domain/funds-policy.ts';
-import { initialStatus, isTransfer } from '../../src/orders/domain/order.ts';
+import { initialStatus, isTransfer, sameSize, sizeToJson } from '../../src/orders/domain/order.ts';
 import { sizeFromAmount } from '../../src/orders/domain/order-sizing.ts';
 import { Money } from '../../src/shared/domain/money.ts';
 
@@ -34,10 +34,6 @@ describe('sizeFromAmount', () => {
   it('returns 0 when the amount does not reach one share', () => {
     expect(sizeFromAmount(Money.parse('925.84'), Money.parse('925.85'))).toBe(0);
   });
-
-  it('truncates pesos for transfers priced at 1', () => {
-    expect(sizeFromAmount(Money.parse('1500.75'), Money.parse('1'))).toBe(1500);
-  });
 });
 
 describe('hasFundsFor', () => {
@@ -45,18 +41,24 @@ describe('hasFundsFor', () => {
 
   it('accepts a BUY or CASH_OUT whose total equals the available cash', () => {
     expect(hasFundsFor({ side: 'BUY', size: 4, price: Money.parse('250') }, available)).toBe(true);
-    expect(hasFundsFor({ side: 'CASH_OUT', size: 1000, price: Money.parse('1') }, available)).toBe(
-      true,
-    );
+    expect(
+      hasFundsFor(
+        { side: 'CASH_OUT', size: Money.parse('1000.00'), price: Money.parse('1') },
+        available,
+      ),
+    ).toBe(true);
   });
 
   it('rejects a BUY or CASH_OUT above the available cash by one cent', () => {
     expect(hasFundsFor({ side: 'BUY', size: 1, price: Money.parse('1000.01') }, available)).toBe(
       false,
     );
-    expect(hasFundsFor({ side: 'CASH_OUT', size: 1001, price: Money.parse('1') }, available)).toBe(
-      false,
-    );
+    expect(
+      hasFundsFor(
+        { side: 'CASH_OUT', size: Money.parse('1000.01'), price: Money.parse('1') },
+        available,
+      ),
+    ).toBe(false);
   });
 
   it('accepts a SELL up to the available shares and rejects one more', () => {
@@ -66,6 +68,22 @@ describe('hasFundsFor', () => {
 
   it('always accepts CASH_IN', () => {
     const empty = { cash: Money.zero, shares: 0 };
-    expect(hasFundsFor({ side: 'CASH_IN', size: 5, price: Money.parse('1') }, empty)).toBe(true);
+    expect(
+      hasFundsFor({ side: 'CASH_IN', size: Money.parse('5'), price: Money.parse('1') }, empty),
+    ).toBe(true);
+  });
+});
+
+describe('order size', () => {
+  it('is an integer in JSON for shares and a two-decimal string for pesos', () => {
+    expect(sizeToJson({ side: 'BUY', size: 10 })).toBe(10);
+    expect(sizeToJson({ side: 'CASH_IN', size: Money.parse('2777.5') })).toBe('2777.50');
+  });
+
+  it('compares transfer sizes cent by cent', () => {
+    const a = { side: 'CASH_IN', size: Money.parse('2777.55') } as const;
+    expect(sameSize(a, { side: 'CASH_IN', size: Money.parse('2777.55') })).toBe(true);
+    expect(sameSize(a, { side: 'CASH_IN', size: Money.parse('2777.56') })).toBe(false);
+    expect(sameSize({ side: 'SELL', size: 3 }, { side: 'SELL', size: 3 })).toBe(true);
   });
 });

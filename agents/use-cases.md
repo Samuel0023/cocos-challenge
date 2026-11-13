@@ -14,7 +14,7 @@ Reference for agents. Each use case is a class in `src/*/application/`. Step-by-
 
 - `SubmitOrder` and `CancelOrder` run inside `UnitOfWork.run`, which takes the user row lock first.
 - The funds check lives in `src/orders/domain/funds-policy.ts`. The status comes from `initialStatus` in `src/orders/domain/order.ts`.
-- Size from an amount is `Money.wholeUnitsAt`, through `sizeFromAmount`.
+- Share size from an amount is `Money.wholeUnitsAt`, through `sizeFromAmount`. A transfer's size is the `Money` sent (`SizedSide` in `src/orders/domain/order.ts`).
 - Events go out through `publishOrderEvent`, after commit, and never throw.
 - Orders are counted through `countOrder` (in `order-events.ts`), after commit, only when stored or cancelled. It never throws.
 - Position math is in `src/portfolio/domain/position-valuation.ts`.

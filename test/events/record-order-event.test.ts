@@ -73,4 +73,26 @@ describe('RecordOrderEvent', () => {
     const { rows } = await ctx.pool.query('SELECT count(*)::int AS n FROM analytics.order_events');
     expect(rows[0].n).toBe(2);
   });
+
+  it('stores a transfer event whose size is a decimal string with cents', async () => {
+    const transfer: OrderEvent = {
+      ...event,
+      eventId: '9a1c2b3d-4e5f-4a6b-8c7d-0e1f2a3b4c5d',
+      order: { ...event.order, instrumentId: 66, side: 'CASH_IN', size: '2777.55', price: '1.00' },
+    };
+    await record.execute(JSON.stringify(transfer));
+
+    const { rows } = await ctx.pool.query(
+      'SELECT payload FROM analytics.order_events WHERE event_id = $1',
+      [transfer.eventId],
+    );
+    expect(rows[0]?.payload.order.size).toBe('2777.55');
+  });
+
+  it('rejects a share size sent as a string or a transfer size sent as a number', async () => {
+    const shareAsString = { ...event, order: { ...event.order, size: '10.00' } };
+    const transferAsNumber = { ...event, order: { ...event.order, side: 'CASH_OUT', size: 10 } };
+    await expect(record.execute(JSON.stringify(shareAsString))).rejects.toThrow();
+    await expect(record.execute(JSON.stringify(transferAsNumber))).rejects.toThrow();
+  });
 });

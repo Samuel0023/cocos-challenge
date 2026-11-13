@@ -116,15 +116,15 @@ Request: `GET /instruments?q=pamp&limit=2`
 
 Submits an order or a cash transfer. The header `Idempotency-Key: <uuid>` is required.
 
-| Field          | Type    | Rule                                                                              |
-| -------------- | ------- | --------------------------------------------------------------------------------- |
-| `userId`       | integer | Required                                                                          |
-| `instrumentId` | integer | Required for `BUY` and `SELL`. Transfers use the ARS instrument when omitted      |
-| `side`         | string  | `BUY`, `SELL`, `CASH_IN` or `CASH_OUT`                                            |
-| `type`         | string  | `MARKET` or `LIMIT`. Required for `BUY` and `SELL`. Transfers are always `MARKET` |
-| `size`         | integer | Shares or pesos. Send exactly one of `size` and `amount`                          |
-| `amount`       | decimal | Pesos to invest. Size becomes the whole part of `amount / price`                  |
-| `price`        | decimal | Required for `LIMIT`. Not allowed for `MARKET` or transfers                       |
+| Field          | Type    | Rule                                                                                                                                             |
+| -------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `userId`       | integer | Required                                                                                                                                         |
+| `instrumentId` | integer | Required for `BUY` and `SELL`. Transfers use the ARS instrument when omitted                                                                     |
+| `side`         | string  | `BUY`, `SELL`, `CASH_IN` or `CASH_OUT`                                                                                                           |
+| `type`         | string  | `MARKET` or `LIMIT`. Required for `BUY` and `SELL`. Transfers are always `MARKET`                                                                |
+| `size`         | number  | `BUY`/`SELL`: whole shares (JSON integer). Transfers: pesos, up to 2 decimals                                                                    |
+| `amount`       | decimal | Pesos. `BUY`/`SELL`: size is the whole part of `amount / price`. Transfers: size = `amount`, cents kept. Send exactly one of `size` and `amount` |
+| `price`        | decimal | Required for `LIMIT`. Not allowed for `MARKET` or transfers                                                                                      |
 
 Request:
 
@@ -152,12 +152,40 @@ Response 201:
 }
 ```
 
+In responses, `size` is a JSON integer for `BUY` and `SELL` and a decimal string with two places for `CASH_IN` and `CASH_OUT`. `size` and `amount` of a transfer both mean pesos and may carry cents (up to two decimals; more is 400). A fractional share size is 400.
+
+Transfer with cents:
+
+```http
+POST /orders
+Idempotency-Key: 0d4b8c52-3a1e-4f7a-9c2b-6e5d4a3b2c1f
+Content-Type: application/json
+
+{ "userId": 2, "side": "CASH_IN", "amount": "2777.55" }
+```
+
+Response 201:
+
+```json
+{
+  "id": 1235,
+  "userId": 2,
+  "instrumentId": 66,
+  "side": "CASH_IN",
+  "type": "MARKET",
+  "status": "FILLED",
+  "size": "2777.55",
+  "price": "1.00",
+  "datetime": "2026-11-13T15:04:06.456Z"
+}
+```
+
 A `LIMIT` order with funds returns `"status": "NEW"`. An order without enough cash or shares returns 201 with `"status": "REJECTED"`. Repeating the same request with the same key returns the same order and stores nothing new. See [flows.md](flows.md) for the full steps.
 
 | Status | When                                                                                                                                                                      |
 | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 201    | The order was stored (any status), or it is a valid retry                                                                                                                 |
-| 400    | Invalid body, missing or invalid `Idempotency-Key`, malformed JSON                                                                                                        |
+| 400    | Invalid body (including a fractional share size or more than two decimals), missing or invalid `Idempotency-Key`, malformed JSON                                          |
 | 404    | Unknown user or instrument                                                                                                                                                |
 | 422    | `BUY` or `SELL` on ARS, transfer on another instrument, `MARKET` without market data, `amount` below one unit, size above 2147483647, key reused with a different request |
 

@@ -13,7 +13,8 @@ export interface OrderRow {
   side: string;
   type: string;
   status: string;
-  size: number;
+  /** NUMERIC(20, 2) as text, e.g. "2.00". */
+  size: string;
   price: string;
   clientorderid: string | null;
 }

@@ -13,7 +13,8 @@ export interface OrderEvent {
     side: string;
     type: string;
     status: string;
-    size: number;
+    /** Integer shares for BUY/SELL; pesos as a decimal string with two places for transfers. */
+    size: number | string;
     price: string;
   };
 }

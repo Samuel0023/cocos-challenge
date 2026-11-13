@@ -1,6 +1,13 @@
 import { Money } from '../../shared/domain/money.ts';
 import type { Queryable } from '../../shared/infra/postgres/db.ts';
-import type { Order, OrderSide, OrderStatus, OrderType } from '../domain/order.ts';
+import {
+  isTransfer,
+  type Order,
+  type OrderSide,
+  type OrderStatus,
+  type OrderType,
+  type SizedSide,
+} from '../domain/order.ts';
 import {
   DuplicateClientOrderIdError,
   type NewOrder,
@@ -14,7 +21,8 @@ interface Row {
   side: OrderSide;
   type: OrderType;
   status: OrderStatus;
-  size: number;
+  /** NUMERIC(20, 2) as text, e.g. "10.00" or "2777.55". */
+  size: string;
   price: string;
   datetime: Date;
 }
@@ -22,17 +30,22 @@ interface Row {
 const COLUMNS = 'id, userid, instrumentid, side, type, status, size, price, datetime';
 const CLIENT_ORDER_ID_CONSTRAINT = 'orders_userid_clientorderid_key';
 
+/** Pesos keep their cents; shares are whole (orders_whole_shares_check). */
+function toSized(side: OrderSide, size: string): SizedSide {
+  const value = Money.parse(size);
+  return isTransfer(side) ? { side, size: value } : { side, size: Number(value.cents / 100n) };
+}
+
 function toOrder(row: Row): Order {
   return {
     id: row.id,
     userId: row.userid,
     instrumentId: row.instrumentid,
-    side: row.side,
     type: row.type,
     status: row.status,
-    size: row.size,
     price: Money.parse(row.price),
     datetime: row.datetime,
+    ...toSized(row.side, row.size),
   };
 }
 
@@ -79,7 +92,7 @@ export class PgOrderRepository implements OrderRepository {
           order.side,
           order.type,
           order.status,
-          order.size,
+          typeof order.size === 'number' ? order.size : order.size.toString(),
           order.price.toString(),
           order.datetime,
           order.clientOrderId,

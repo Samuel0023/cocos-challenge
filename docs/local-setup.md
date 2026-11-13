@@ -41,7 +41,7 @@ flowchart TB
   end
 ```
 
-Stop everything with `make down`. See page "Entorno local" of `docs/diagrams/cocos-solution.drawio`.
+Stop everything with `make down`. See page "Local environment" of `docs/diagrams/cocos-solution.drawio`.
 
 Run `make down` before switching modes. `make services` uses only `compose.yaml`, so running it while the `make up` stack is up recreates `aws-emulator` and wipes its in-memory topic and queue.
 

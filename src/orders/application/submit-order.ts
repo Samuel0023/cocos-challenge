@@ -9,9 +9,11 @@ import {
   initialStatus,
   isTransfer,
   MAX_ORDER_SIZE,
+  sameSize,
   type Order,
   type OrderSide,
   type OrderType,
+  type SizedSide,
 } from '../domain/order.ts';
 import { sizeFromAmount } from '../domain/order-sizing.ts';
 import { countOrder, publishOrderEvent } from './order-events.ts';
@@ -25,14 +27,17 @@ import {
   type UnitOfWork,
 } from './ports.ts';
 
-/** A request already validated for shape: `type` is set for BUY/SELL, exactly one of size/amount. */
+/**
+ * A request already validated for shape: `type` is set for BUY/SELL, exactly one of size/amount,
+ * `size` is whole shares (number) for BUY/SELL and pesos (Money) for transfers.
+ */
 export interface SubmitOrderCommand {
   idempotencyKey: string;
   userId: number;
   instrumentId?: number;
   side: OrderSide;
   type?: OrderType;
-  size?: number;
+  size?: number | Money;
   amount?: Money;
   price?: Money;
 }
@@ -49,12 +54,10 @@ export interface SubmitOrderDeps {
   metrics: OrderMetrics;
 }
 
-interface ResolvedOrder {
+type ResolvedOrder = {
   userId: number;
   instrumentId: number;
-  side: OrderSide;
   type: OrderType;
-  size: number;
   price: Money;
   /**
    * Whether the client fixed the size and the price. A MARKET price comes from market data and
@@ -62,7 +65,7 @@ interface ResolvedOrder {
    */
   sizeFromClient: boolean;
   priceFromClient: boolean;
-}
+} & SizedSide;
 
 const TRANSFER_PRICE = Money.parse('1');
 
@@ -129,16 +132,11 @@ export class SubmitOrder {
     const type: OrderType = transfer ? 'MARKET' : (command.type ?? 'MARKET');
     const price = await this.resolvePrice(instrument, type, transfer, command.price);
 
-    const size = command.size ?? sizeFromAmount(command.amount ?? Money.zero, price);
-    if (size === 0) throw unprocessable('Amount is not enough for one unit at the order price');
-    if (size > MAX_ORDER_SIZE) throw unprocessable('Order size is too large');
-
     return {
       userId: command.userId,
       instrumentId: instrument.id,
-      side: command.side,
+      ...resolveSize(command, price),
       type,
-      size,
       price,
       priceFromClient: !transfer && type === 'LIMIT',
       sizeFromClient: command.size !== undefined || transfer || type === 'LIMIT',
@@ -177,6 +175,21 @@ export class SubmitOrder {
   }
 }
 
+/** Pesos exactly as sent for transfers; whole shares as sent or covered by the amount otherwise. */
+function resolveSize(command: SubmitOrderCommand, price: Money): SizedSide {
+  const { side, size, amount } = command;
+  if (isTransfer(side)) {
+    const pesos = amount ?? size;
+    if (!(pesos instanceof Money)) throw new Error('Transfer without pesos reached the use case');
+    return { side, size: pesos };
+  }
+  if (size instanceof Money) throw new Error('Share size in pesos reached the use case');
+  const shares = size ?? sizeFromAmount(amount ?? Money.zero, price);
+  if (shares === 0) throw unprocessable('Amount is not enough for one unit at the order price');
+  if (shares > MAX_ORDER_SIZE) throw unprocessable('Order size is too large');
+  return { side, size: shares };
+}
+
 /** The stored order when the retry asks for the same thing; 422 otherwise. */
 function replay(existing: Order, requested: ResolvedOrder): Order {
   const same =
@@ -184,7 +197,7 @@ function replay(existing: Order, requested: ResolvedOrder): Order {
     existing.instrumentId === requested.instrumentId &&
     existing.side === requested.side &&
     existing.type === requested.type &&
-    (!requested.sizeFromClient || existing.size === requested.size) &&
+    (!requested.sizeFromClient || sameSize(existing, requested)) &&
     (!requested.priceFromClient || existing.price.cents === requested.price.cents);
   if (!same) throw unprocessable('Idempotency-Key already used with a different request');
   return existing;

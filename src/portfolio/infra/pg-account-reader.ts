@@ -31,12 +31,15 @@ export class PgAccountReader implements AccountReader {
 
   async getCash(userId: number): Promise<CashSummary> {
     const { rows } = await this.db.query<CashRow>(
+      // size × price has scale 4 but is always a whole number of cents (shares are whole and
+      // transfers are priced at 1), so ROUND to 2 places is exact.
       `SELECT
-         COALESCE(SUM(CASE WHEN side IN ('CASH_IN', 'SELL') THEN size * price
-                           ELSE -size * price END)
-                  FILTER (WHERE status = 'FILLED'), 0) AS balance,
-         COALESCE(SUM(size * price)
-                  FILTER (WHERE status = 'NEW' AND side = 'BUY' AND type = 'LIMIT'), 0) AS reserved
+         ROUND(COALESCE(SUM(CASE WHEN side IN ('CASH_IN', 'SELL') THEN size * price
+                                 ELSE -size * price END)
+                        FILTER (WHERE status = 'FILLED'), 0), 2) AS balance,
+         ROUND(COALESCE(SUM(size * price)
+                        FILTER (WHERE status = 'NEW' AND side = 'BUY' AND type = 'LIMIT'), 0), 2)
+           AS reserved
          FROM orders
         WHERE userid = $1 AND status IN ('FILLED', 'NEW')`,
       [userId],
@@ -51,7 +54,7 @@ export class PgAccountReader implements AccountReader {
       `SELECT o.instrumentid, i.ticker, i.name,
               SUM(CASE WHEN o.side = 'BUY' THEN o.size ELSE -o.size END) AS quantity,
               COALESCE(SUM(o.size) FILTER (WHERE o.side = 'BUY'), 0) AS buysize,
-              COALESCE(SUM(o.size * o.price) FILTER (WHERE o.side = 'BUY'), 0) AS buycost
+              ROUND(COALESCE(SUM(o.size * o.price) FILTER (WHERE o.side = 'BUY'), 0), 2) AS buycost
          FROM orders o
          JOIN instruments i ON i.id = o.instrumentid
         WHERE o.userid = $1 AND o.status = 'FILLED' AND o.side IN ('BUY', 'SELL')
@@ -63,6 +66,7 @@ export class PgAccountReader implements AccountReader {
       instrumentId: row.instrumentid,
       ticker: row.ticker,
       name: row.name,
+      // Share sums come back as NUMERIC text such as "40.00"; shares are whole.
       quantity: Number(row.quantity),
       buySize: Number(row.buysize),
       buyCost: Money.parse(row.buycost),

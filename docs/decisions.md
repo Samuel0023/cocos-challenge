@@ -11,12 +11,12 @@ This document records the decisions D-01 to D-24, the schema changes, the discar
 | D-03 | Total return                  | `(close − average cost) / average cost`, with the weighted average cost of `FILLED` buys                 | Simple and uses data the orders already hold               |
 | D-04 | Daily return                  | Returned per position, next to the total return                                                          | The challenge asks for it per instrument                   |
 | D-05 | Negative or zero positions    | Not listed and not added to the total value                                                              | Such positions are data anomalies, not holdings            |
-| D-06 | Orders by amount              | Size is the whole part of `amount / price`. If it is zero shares, respond 422 and store nothing          | A client mistake is not an order                           |
+| D-06 | Orders by amount              | `BUY`/`SELL`: whole shares of `amount / price`, zero gives 422. Transfers: size = `amount`, cents kept   | A client mistake is not an order                           |
 | D-07 | What is stored as `REJECTED`  | Only missing cash or shares. Malformed requests return 4xx and are not stored                            | `REJECTED` is a business outcome, not a validation error   |
 | D-08 | Cancellation                  | `POST /orders/:orderId/cancel`, only from `NEW`                                                          | Only `NEW` orders are open                                 |
-| D-09 | `CASH_IN` and `CASH_OUT`      | Sent through `POST /orders`, on the ARS instrument, type `MARKET`, price 1                               | Transfers are rows in `orders`, like the seed data         |
+| D-09 | `CASH_IN` and `CASH_OUT`      | Sent through `POST /orders`, on the ARS instrument, type `MARKET`, price 1, size in pesos with cents     | Transfers are rows in `orders`, like the seed data         |
 | D-10 | Concurrency                   | One transaction with `SELECT ... FOR UPDATE` on the user row, at `READ COMMITTED`                        | Serialises orders of one user without blocking others      |
-| D-11 | Schema changes                | Only indexes, constraints and one nullable column, in a separate migration                               | The provided tables stay as they are                       |
+| D-11 | Schema changes                | Indexes, constraints, one nullable column and one column type change (`size`), in a separate migration   | Minimal changes; `size` must hold transfer cents           |
 | D-12 | API contract                  | User in the path or body, pagination with `limit` and `offset`, partial search ignoring case and accents | Predictable and easy to test                               |
 | D-13 | Commands                      | Makefile with `make services`, `make dev`, `make up`, `make test`, `make lint` and `make down`           | One entry point; the code adds `make typecheck` for CI     |
 | D-14 | Documentation                 | README under 100 lines, detail in `docs/`. Code and docs in English                                      | Quick start first, depth on demand                         |
@@ -26,7 +26,7 @@ This document records the decisions D-01 to D-24, the schema changes, the discar
 | D-18 | Duplicate events              | Each event has an `eventId`. Unique key and `ON CONFLICT DO NOTHING` in the analytics table              | SQS delivers at least once                                 |
 | D-19 | Cache expiry                  | TTL of 60 seconds for the latest price and 5 minutes for search. If Valkey fails, read PostgreSQL        | Market data does not change here; the cache is best-effort |
 | D-20 | Idempotency                   | Required `Idempotency-Key` header on `POST /orders`, stored in `orders.clientorderid`                    | Safe client retries                                        |
-| D-21 | Context for AI agents         | `AGENTS.md`, a `CLAUDE.md` that points to it, the `agents/` folder and the `run-service` skill           | One source of context for any tool                         |
+| D-21 | Context for AI agents         | `AGENTS.md`, the `agents/` folder and the `run-service` skill                                            | One source of context for any tool                         |
 | D-22 | Grafana dashboard             | Datasource and dashboard provisioned, with anonymous read-only access                                    | Works right after startup                                  |
 | D-23 | Continuous integration        | GitHub Actions on each push and pull request: lint, type check and tests                                 | Catches regressions early                                  |
 | D-24 | Linters and formatting        | Recommended ESLint, typescript-eslint, Prettier and `tsconfig` in `strict` mode. No custom rules         | Standard tools, no maintenance                             |
@@ -40,7 +40,7 @@ Assumptions about the challenge data:
 
 ## Schema changes
 
-All in `db/migrations/001_constraints_and_analytics.sql`. No existing row changes.
+All in `db/migrations/001_constraints_and_analytics.sql`. No existing row changes value: the 11 seed orders keep their sizes.
 
 ```mermaid
 erDiagram
@@ -51,7 +51,7 @@ erDiagram
     int id PK
     int userid FK
     int instrumentid FK
-    int size
+    numeric size "changed: numeric(20,2), cents for transfers"
     numeric price
     varchar side
     varchar type
@@ -77,16 +77,18 @@ erDiagram
   }
 ```
 
-| Change                                                         | Table         | Why                                                                         |
-| -------------------------------------------------------------- | ------------- | --------------------------------------------------------------------------- |
-| Extension `unaccent`                                           | Database      | Search ignores accents                                                      |
-| Column `clientorderid varchar(64)`, null, unique with `userid` | `orders`      | Stores the idempotency key next to the order                                |
-| Index on `(userid, status, instrumentid)`                      | `orders`      | Balance and position queries filter by user and status                      |
-| `NOT NULL` on required columns, `CHECK (size > 0)`             | `orders`      | The database refuses orders without size, user or instrument                |
-| `CHECK` on `side`, `type` and `status`                         | `orders`      | The database refuses values outside the challenge                           |
-| Unique `(instrumentid, date)`                                  | `marketdata`  | One price per day; also serves the latest-close lookup                      |
-| Unique `ticker`                                                | `instruments` | Prevents duplicate tickers                                                  |
-| Schema `analytics`, table `order_events`, unique `event_id`    | New           | History of events stored by the consumer; the key makes redelivery harmless |
+| Change                                                          | Table         | Why                                                                                                                                                            |
+| --------------------------------------------------------------- | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Extension `unaccent`                                            | Database      | Search ignores accents                                                                                                                                         |
+| Column `clientorderid varchar(64)`, null, unique with `userid`  | `orders`      | Stores the idempotency key next to the order                                                                                                                   |
+| Index on `(userid, status, instrumentid)`                       | `orders`      | Balance and position queries filter by user and status                                                                                                         |
+| `NOT NULL` on required columns, `CHECK (size > 0)`              | `orders`      | The database refuses orders without size, user or instrument                                                                                                   |
+| `CHECK` on `side`, `type` and `status`                          | `orders`      | The database refuses values outside the challenge                                                                                                              |
+| Column `size` from `int` to `numeric(20, 2)`                    | `orders`      | Transfers move pesos with cents (size = pesos, price = 1). The challenge computes balances and holdings from `size`, and allows changing tables when justified |
+| `CHECK (side IN ('CASH_IN', 'CASH_OUT') OR size = trunc(size))` | `orders`      | Shares stay whole: the database refuses a fractional `BUY` or `SELL`                                                                                           |
+| Unique `(instrumentid, date)`                                   | `marketdata`  | One price per day; also serves the latest-close lookup                                                                                                         |
+| Unique `ticker`                                                 | `instruments` | Prevents duplicate tickers                                                                                                                                     |
+| Schema `analytics`, table `order_events`, unique `event_id`     | New           | History of events stored by the consumer; the key makes redelivery harmless                                                                                    |
 
 ## Discarded alternatives
 

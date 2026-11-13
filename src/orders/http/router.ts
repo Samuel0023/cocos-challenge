@@ -5,7 +5,7 @@ import { PgMarketDataRepository } from '../../marketdata/pg-market-data-reposito
 import { badRequest, notFound } from '../../shared/http/errors.ts';
 import { CancelOrder } from '../application/cancel-order.ts';
 import { SubmitOrder } from '../application/submit-order.ts';
-import type { Order } from '../domain/order.ts';
+import { sizeToJson, type Order } from '../domain/order.ts';
 import { MarketPriceSource } from '../infra/market-price-source.ts';
 import { PgOrderInstrumentRepository } from '../infra/pg-instrument-repository.ts';
 import { PgOrderRepository } from '../infra/pg-order-repository.ts';
@@ -23,7 +23,7 @@ function toBody(order: Order) {
     side: order.side,
     type: order.type,
     status: order.status,
-    size: order.size,
+    size: sizeToJson(order),
     price: order.price.toString(),
     datetime: order.datetime.toISOString(),
   };

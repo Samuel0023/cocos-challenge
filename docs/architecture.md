@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes how the code is organised: layers, folders, ports and adapters, and the services around the API. The diagrams are in `docs/diagrams/cocos-solution.drawio`, pages "Arquitectura hexagonal" and "Arquitectura AWS".
+This document describes how the code is organised: layers, folders, ports and adapters, and the services around the API. The diagrams are in `docs/diagrams/cocos-solution.drawio`, pages "Hexagonal architecture" and "AWS architecture".
 
 ## Layers
 
@@ -139,7 +139,7 @@ Grafana dashboard `docker/grafana/dashboards/cocos-api.json` shows orders by sta
 
 ## Reference AWS deployment
 
-This deployment is a reference. It is not part of the deliverable. See page "Arquitectura AWS" in the diagram file.
+This deployment is a reference. It is not part of the deliverable. See page "AWS architecture" in the diagram file.
 
 ```mermaid
 flowchart LR

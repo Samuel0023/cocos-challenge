@@ -14,14 +14,14 @@ Reference for agents. Schema: `db/database.sql` (from the challenge). Changes: `
 
 ## orders
 
-| Column          | Notes                                                  |
-| --------------- | ------------------------------------------------------ |
-| `side`          | `BUY`, `SELL`, `CASH_IN`, `CASH_OUT`                   |
-| `type`          | `MARKET`, `LIMIT`                                      |
-| `status`        | `NEW`, `FILLED`, `REJECTED`, `CANCELLED`               |
-| `size`          | Integer greater than 0. Shares, or pesos for transfers |
-| `price`         | `numeric(10,2)`. Transfers use 1                       |
-| `clientorderid` | Idempotency key, nullable, unique with `userid`        |
+| Column          | Notes                                                                                                             |
+| --------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `side`          | `BUY`, `SELL`, `CASH_IN`, `CASH_OUT`                                                                              |
+| `type`          | `MARKET`, `LIMIT`                                                                                                 |
+| `status`        | `NEW`, `FILLED`, `REJECTED`, `CANCELLED`                                                                          |
+| `size`          | `numeric(20,2)`, > 0. Whole shares for `BUY`/`SELL` (`orders_whole_shares_check`); pesos with cents for transfers |
+| `price`         | `numeric(10,2)`. Transfers use 1                                                                                  |
+| `clientorderid` | Idempotency key, nullable, unique with `userid`                                                                   |
 
 Index: `(userid, status, instrumentid)`.
 

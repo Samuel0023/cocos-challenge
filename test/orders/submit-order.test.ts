@@ -63,7 +63,7 @@ describe('POST /orders', () => {
         side: 'BUY',
         type: 'MARKET',
         status: 'FILLED',
-        size: 2,
+        size: '2.00',
         price: '925.85',
       });
     });
@@ -197,7 +197,7 @@ describe('POST /orders', () => {
 
       expect(res.status).toBe(201);
       expect(res.body).toMatchObject({ status: 'FILLED', size: 5, price: '925.85' });
-      expect((await orderRow(res.body.id))?.size).toBe(5);
+      expect((await orderRow(res.body.id))?.size).toBe('5.00');
     });
 
     it('answers 422 when the amount does not cover one share', async () => {
@@ -289,10 +289,10 @@ describe('POST /orders', () => {
         side: 'CASH_IN',
         type: 'MARKET',
         status: 'FILLED',
-        size: 1500,
+        size: '1500.75',
         price: '1.00',
       });
-      expect(await orderRow(cashIn.body.id)).toMatchObject({ instrumentid: ARS, size: 1500 });
+      expect(await orderRow(cashIn.body.id)).toMatchObject({ instrumentid: ARS, size: '1500.75' });
 
       const buy = await post({ userId, instrumentId: PAMP, side: 'BUY', type: 'MARKET', size: 1 });
       expect(buy.status).toBe(201);
@@ -306,7 +306,7 @@ describe('POST /orders', () => {
       const within = await post({ userId, side: 'CASH_OUT', type: 'MARKET', size: 1000 });
 
       expect(above.status).toBe(201);
-      expect(above.body).toMatchObject({ side: 'CASH_OUT', status: 'REJECTED', size: 1001 });
+      expect(above.body).toMatchObject({ side: 'CASH_OUT', status: 'REJECTED', size: '1001.00' });
       expect((await orderRow(above.body.id))?.status).toBe('REJECTED');
       expect(within.status).toBe(201);
       expect(within.body.status).toBe('FILLED');

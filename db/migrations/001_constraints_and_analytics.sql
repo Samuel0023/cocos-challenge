@@ -1,5 +1,5 @@
 -- Additions on top of the schema provided by the challenge (db/database.sql).
--- Nothing here changes or deletes existing rows.
+-- Nothing here deletes existing rows; the seed orders keep their values.
 
 CREATE EXTENSION IF NOT EXISTS unaccent;
 
@@ -22,6 +22,12 @@ ALTER TABLE orders
   ADD CONSTRAINT orders_side_check CHECK (side IN ('BUY', 'SELL', 'CASH_IN', 'CASH_OUT')),
   ADD CONSTRAINT orders_type_check CHECK (type IN ('MARKET', 'LIMIT')),
   ADD CONSTRAINT orders_status_check CHECK (status IN ('NEW', 'FILLED', 'REJECTED', 'CANCELLED'));
+
+-- Transfers move pesos with cents (size = pesos, price = 1), so size holds two decimals.
+-- Balances and holdings are computed from `size`, as the challenge asks. Shares stay whole.
+ALTER TABLE orders ALTER COLUMN size TYPE numeric(20, 2);
+ALTER TABLE orders ADD CONSTRAINT orders_whole_shares_check
+  CHECK (side IN ('CASH_IN', 'CASH_OUT') OR size = trunc(size));
 
 -- One price per instrument and day; also serves the "latest close" lookup.
 ALTER TABLE marketdata ADD CONSTRAINT marketdata_instrumentid_date_key UNIQUE (instrumentid, date);

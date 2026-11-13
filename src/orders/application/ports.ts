@@ -1,17 +1,15 @@
 import type { Money } from '../../shared/domain/money.ts';
-import type { Order, OrderSide, OrderStatus, OrderType } from '../domain/order.ts';
+import type { Order, OrderStatus, OrderType, SizedSide } from '../domain/order.ts';
 
-export interface NewOrder {
+export type NewOrder = {
   userId: number;
   instrumentId: number;
-  side: OrderSide;
   type: OrderType;
   status: OrderStatus;
-  size: number;
   price: Money;
   datetime: Date;
   clientOrderId: string;
-}
+} & SizedSide;
 
 export interface OrderRepository {
   findById(id: number): Promise<Order | null>;

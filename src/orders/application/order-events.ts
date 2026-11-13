@@ -3,7 +3,7 @@ import type { EventPublisher, OrderEventType } from '../../shared/events/order-e
 import type { OrderMetrics } from '../../metrics/metrics.ts';
 import type { Logger } from '../../shared/logger.ts';
 import type { Clock } from '../../shared/ports/clock.ts';
-import type { Order } from '../domain/order.ts';
+import { sizeToJson, type Order } from '../domain/order.ts';
 
 /** Publishes after commit; a failure is logged and never reaches the caller. */
 export async function publishOrderEvent(
@@ -23,7 +23,7 @@ export async function publishOrderEvent(
         side: order.side,
         type: order.type,
         status: order.status,
-        size: order.size,
+        size: sizeToJson(order),
         price: order.price.toString(),
       },
     });

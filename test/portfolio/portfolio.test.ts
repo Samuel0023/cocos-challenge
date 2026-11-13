@@ -143,4 +143,22 @@ describe('GET /users/:userId/portfolio', () => {
     );
     expect(res.body.totalAccountValue).toBe('904784.00');
   });
+
+  it('keeps the cents of transfers in the cash figures', async () => {
+    await ctx.pool.query(
+      `INSERT INTO orders (instrumentid, userid, size, price, side, status, type, datetime)
+       VALUES (66, 3, 2777.55, 1, 'CASH_IN', 'FILLED', 'MARKET', now()),
+              (66, 3, 0.30, 1, 'CASH_OUT', 'FILLED', 'MARKET', now())`,
+    );
+
+    const res = await request(ctx.app).get('/users/3/portfolio');
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({
+      cashBalance: '2777.25',
+      reservedCash: '0.00',
+      availableCash: '2777.25',
+      totalAccountValue: '2777.25',
+    });
+  });
 });
