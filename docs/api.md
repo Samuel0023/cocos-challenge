@@ -19,6 +19,10 @@ Conventions:
 | `UNPROCESSABLE_ENTITY` | 422    |
 | `INTERNAL_ERROR`       | 500    |
 
+## OpenAPI and Swagger UI
+
+The machine-readable description of these endpoints is `src/openapi/openapi.yaml` (OpenAPI 3.1). With the API running, Swagger UI is at http://localhost:3000/docs and the raw document at http://localhost:3000/openapi.yaml. `test/docs/openapi.test.ts` checks that the document and the mounted routes match.
+
 ## GET /health
 
 Checks the database connection.
@@ -211,7 +215,7 @@ Response 200 is the order with `"status": "CANCELLED"`, in the same shape as abo
 | Status | When                                                  |
 | ------ | ----------------------------------------------------- |
 | 200    | The order was `NEW` and is now `CANCELLED`            |
-| 400    | `orderId` is not a positive integer                   |
+| 400    | `orderId` is not a whole number (`0` is 404)          |
 | 404    | The order does not exist                              |
 | 409    | The order is not `NEW` (the message names its status) |
 

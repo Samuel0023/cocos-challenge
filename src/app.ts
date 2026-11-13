@@ -1,5 +1,6 @@
 import express, { type Express } from 'express';
 import type pg from 'pg';
+import { createDocsRouter } from './openapi/router.ts';
 import { createHealthRouter } from './health/health.router.ts';
 import { createInstrumentsRouter } from './instruments/http/router.ts';
 import { createMetricsRouter, requestMetrics } from './metrics/http.ts';
@@ -31,6 +32,7 @@ export function buildApp(deps: AppDeps): Express {
 
   app.use(createHealthRouter(deps.pool));
   app.use(createMetricsRouter(deps.metrics));
+  app.use(createDocsRouter());
   app.use(createInstrumentsRouter(deps));
   app.use(createPortfolioRouter(deps));
   app.use(createOrdersRouter(deps));

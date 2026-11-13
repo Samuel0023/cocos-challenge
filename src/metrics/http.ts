@@ -1,10 +1,15 @@
 import { Router, type Request, type RequestHandler } from 'express';
 import type { AppMetrics, HttpMetrics } from './metrics.ts';
 
-/** The Express route pattern (never the raw URL, which would explode label cardinality). */
+/**
+ * The Express route pattern (never the raw URL, which would explode label cardinality).
+ * A response sent by middleware mounted on a path (the Swagger UI assets under `/docs`) has no
+ * route; its fixed mount path is used instead.
+ */
 function routeOf(req: Request): string {
   const route = req.route as { path?: unknown } | undefined;
-  return typeof route?.path === 'string' ? `${req.baseUrl}${route.path}` : 'unmatched';
+  if (typeof route?.path === 'string') return `${req.baseUrl}${route.path}`;
+  return req.baseUrl || 'unmatched';
 }
 
 /** Records the latency of every request when the response is sent. */

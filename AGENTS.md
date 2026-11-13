@@ -38,6 +38,7 @@ Hexagonal, organised by feature: `src/portfolio`, `src/instruments`, `src/orders
 | Need                      | Look at                                                                         |
 | ------------------------- | ------------------------------------------------------------------------------- |
 | Endpoints and examples    | `docs/api.md`, `requests.http`, `agents/api-contract.md`                        |
+| OpenAPI and Swagger UI    | `src/openapi/openapi.yaml`, `src/openapi/router.ts`, `/docs`, `/openapi.yaml`   |
 | Step-by-step flows        | `docs/flows.md`, `agents/use-cases.md`                                          |
 | Tables and schema changes | `db/`, `agents/data-model.md`                                                   |
 | Decisions D-01 to D-24    | `docs/decisions.md`, `agents/decisions.md`                                      |

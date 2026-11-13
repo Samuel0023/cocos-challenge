@@ -37,6 +37,8 @@ curl http://localhost:3000/users/1/portfolio
 
 `requests.http` has one request per endpoint and per error case (VS Code REST Client).
 
+After starting the API, the interactive docs (Swagger UI) are at http://localhost:3000/docs and the raw OpenAPI document at http://localhost:3000/openapi.yaml.
+
 ## Endpoints
 
 | Method and path                      | What it does                                | Status codes       |

@@ -1,0 +1,699 @@
+openapi: 3.1.0
+info:
+  title: Cocos Challenge API
+  version: 1.0.0
+  description: |
+    REST API for a broker: a user's portfolio, instrument search, order submission and cash transfers.
+
+    Conventions:
+
+    - Bodies are JSON. Money and percentages in responses are decimal strings with two decimals (`"925.85"`).
+      Prices and amounts in requests accept a string or a number with up to two decimals.
+    - Errors share one shape: `{ "error": { "code", "message", "details"? } }`. `details` is present only on
+      validation errors.
+    - Examples come from the challenge seed. Ids of new orders and dates change from run to run.
+servers:
+  - url: http://localhost:3000
+    description: Local (make dev or make up)
+tags:
+  - name: Portfolio
+    description: Account value, cash and positions
+  - name: Instruments
+    description: Instrument search
+  - name: Orders
+    description: Orders and cash transfers
+  - name: Operations
+    description: Health check and Prometheus metrics
+
+paths:
+  /health:
+    get:
+      tags: [Operations]
+      summary: Check the database connection
+      operationId: getHealth
+      responses:
+        '200':
+          description: The database answers.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+              example: { status: ok }
+        '503':
+          description: The database is unreachable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+              example: { status: unavailable }
+
+  /users/{userId}/portfolio:
+    get:
+      tags: [Portfolio]
+      summary: Get a user's portfolio
+      description: |
+        Total account value, cash and open positions. Positions are sorted by ticker and only those with a
+        positive quantity are listed. A position without market data has `null` in `lastPrice`, `marketValue`
+        and the returns. Users without orders have every amount at `"0.00"` and no positions.
+      operationId: getPortfolio
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: Positive integer. A value above 2147483647 cannot exist and answers 404.
+          schema:
+            type: string
+            pattern: '^[1-9]\d*$'
+          example: '1'
+      responses:
+        '200':
+          description: The user exists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Portfolio'
+              example:
+                userId: 1
+                totalAccountValue: '904784.00'
+                availableCash: '627500.00'
+                cashBalance: '753000.00'
+                reservedCash: '125500.00'
+                positions:
+                  - instrumentId: 54
+                    ticker: METR
+                    name: MetroGAS S.A.
+                    quantity: 500
+                    averageCost: '250.00'
+                    lastPrice: '229.50'
+                    marketValue: '114750.00'
+                    totalReturnPct: '-8.20'
+                    dailyReturnPct: '-1.08'
+                  - instrumentId: 47
+                    ticker: PAMP
+                    name: Pampa Holding S.A.
+                    quantity: 40
+                    averageCost: '930.00'
+                    lastPrice: '925.85'
+                    marketValue: '37034.00'
+                    totalReturnPct: '-0.45'
+                    dailyReturnPct: '0.44'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          description: The user does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: { code: NOT_FOUND, message: User 999 not found }
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /instruments:
+    get:
+      tags: [Instruments]
+      summary: Search instruments
+      description: |
+        Partial match on ticker or name, ignoring case and accents. Exact ticker matches come first.
+        `total` counts all matches, not only the page. `lastPrice` is the latest close, or `null` without
+        market data.
+      operationId: searchInstruments
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: Text to search. Trimmed; must not be empty.
+          schema:
+            type: string
+            minLength: 1
+          example: pamp
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: Always, with an empty `items` when nothing matches.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstrumentSearch'
+              example:
+                items:
+                  - id: 47
+                    ticker: PAMP
+                    name: Pampa Holding S.A.
+                    type: ACCIONES
+                    lastPrice: '925.85'
+                limit: 20
+                offset: 0
+                total: 1
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /orders:
+    post:
+      tags: [Orders]
+      summary: Submit an order or a cash transfer
+      description: |
+        - `BUY` and `SELL` send exactly one of `size` (whole shares, a JSON integer) or `amount` (pesos to
+          invest; the size is the whole part of `amount / price`). `LIMIT` requires `price`; `MARKET` forbids
+          it and executes at the last close.
+        - `CASH_IN` and `CASH_OUT` take pesos in `amount` only, with up to two decimals. A transfer with `size`
+          is 400. `instrumentId` (the ARS instrument, 66 on the seed) and `type` (`MARKET`) are optional.
+
+        Outcome:
+
+        - A `MARKET` order or transfer with funds is `FILLED`; a `LIMIT` order with funds is `NEW` and reserves
+          cash or shares.
+        - An order without enough cash or shares is stored as `REJECTED` and answered with **201**: it is not
+          an error.
+        - Every 4xx stores nothing.
+        - Retrying with the same `Idempotency-Key` and the same request returns the stored order with 201 and
+          stores nothing new. The same key with a different request is 422.
+      operationId: submitOrder
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: A UUID chosen by the client, one per order. Missing or not a UUID is 400.
+          schema:
+            type: string
+            format: uuid
+          example: 5b3f1c1e-9f0a-4c1d-8a55-2f4e6d7c8b90
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitOrderRequest'
+            examples:
+              marketBuyBySize:
+                summary: MARKET buy of 2 shares
+                value: { userId: 1, instrumentId: 47, side: BUY, type: MARKET, size: 2 }
+              marketBuyByAmount:
+                summary: MARKET buy investing up to 5000 pesos
+                value: { userId: 1, instrumentId: 47, side: BUY, type: MARKET, amount: '5000' }
+              limitSell:
+                summary: LIMIT sell (stays NEW and reserves shares)
+                value:
+                  { userId: 1, instrumentId: 47, side: SELL, type: LIMIT, size: 1, price: '1000' }
+              cashIn:
+                summary: Cash in with cents
+                value: { userId: 2, side: CASH_IN, amount: '2777.55' }
+              cashOut:
+                summary: Cash out
+                value: { userId: 2, side: CASH_OUT, amount: '1000' }
+      responses:
+        '201':
+          description: |
+            The order was stored, in any status including `REJECTED`, or the request is a retry of a stored
+            order with the same key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+              examples:
+                filled:
+                  summary: MARKET buy, FILLED
+                  value:
+                    id: 1234
+                    userId: 1
+                    instrumentId: 47
+                    side: BUY
+                    type: MARKET
+                    status: FILLED
+                    size: 2
+                    price: '925.85'
+                    datetime: '2026-11-13T15:04:05.123Z'
+                rejected:
+                  summary: Not enough pesos, stored as REJECTED
+                  value:
+                    id: 1236
+                    userId: 1
+                    instrumentId: 47
+                    side: BUY
+                    type: MARKET
+                    status: REJECTED
+                    size: 100000
+                    price: '925.85'
+                    datetime: '2026-11-13T15:04:07.000Z'
+                transfer:
+                  summary: Cash in; size is pesos as a decimal string
+                  value:
+                    id: 1235
+                    userId: 2
+                    instrumentId: 66
+                    side: CASH_IN
+                    type: MARKET
+                    status: FILLED
+                    size: '2777.55'
+                    price: '1.00'
+                    datetime: '2026-11-13T15:04:06.456Z'
+        '400':
+          description: |
+            Invalid body (missing fields, wrong types, both or neither of `size` and `amount`, a fractional
+            share size, more than two decimals, `LIMIT` without `price`, `MARKET` with `price`, a transfer with
+            `size`), missing or invalid `Idempotency-Key`, or malformed JSON.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                validation:
+                  summary: Invalid body
+                  value:
+                    error:
+                      code: BAD_REQUEST
+                      message: Invalid request
+                      details:
+                        - code: custom
+                          path: [size]
+                          message: Send exactly one of size or amount
+                idempotencyKey:
+                  summary: Missing Idempotency-Key
+                  value:
+                    error:
+                      code: BAD_REQUEST
+                      message: Header Idempotency-Key is required and must be a UUID
+        '404':
+          description: Unknown user or instrument.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: { code: NOT_FOUND, message: Instrument 9999 not found }
+        '422':
+          description: |
+            `BUY` or `SELL` on the ARS instrument, a transfer on another instrument, `MARKET` on an instrument
+            without market data, an `amount` that does not cover one unit, a size above 2147483647, or an
+            `Idempotency-Key` reused with a different request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                amountTooSmall:
+                  summary: Amount below one unit
+                  value:
+                    error:
+                      code: UNPROCESSABLE_ENTITY
+                      message: Amount is not enough for one unit at the order price
+                keyReused:
+                  summary: Same key, different request
+                  value:
+                    error:
+                      code: UNPROCESSABLE_ENTITY
+                      message: Idempotency-Key already used with a different request
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /orders/{orderId}/cancel:
+    post:
+      tags: [Orders]
+      summary: Cancel an order in NEW
+      description: |
+        No body and no idempotency key. Only a `NEW` order can be cancelled: cancelling twice returns 409 the
+        second time.
+      operationId: cancelOrder
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          description: Digits only. A value that matches no order (0, or above 2147483647) answers 404.
+          schema:
+            type: string
+            pattern: '^\d+$'
+          example: '1234'
+      responses:
+        '200':
+          description: The order was `NEW` and is now `CANCELLED`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+              example:
+                id: 1237
+                userId: 1
+                instrumentId: 47
+                side: BUY
+                type: LIMIT
+                status: CANCELLED
+                size: 1
+                price: '900.00'
+                datetime: '2026-11-13T15:04:08.000Z'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          description: The order does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: { code: NOT_FOUND, message: Order 999999 not found }
+        '409':
+          description: The order is not `NEW`; the message names its status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: { code: CONFLICT, message: Order 1 is FILLED and cannot be cancelled }
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /metrics:
+    get:
+      tags: [Operations]
+      summary: Prometheus metrics
+      description: Prometheus text format. Metric names and labels are a contract for the Grafana dashboard.
+      operationId: getMetrics
+      responses:
+        '200':
+          description: Metrics in Prometheus text format.
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: |
+                orders_total{status="FILLED",side="BUY",type="MARKET"} 2
+                http_request_duration_seconds_count{method="GET",route="/users/:userId/portfolio",status_code="200"} 1
+
+components:
+  responses:
+    BadRequest:
+      description: A path or query parameter is invalid.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: { code: BAD_REQUEST, message: userId must be a positive integer }
+    InternalError:
+      description: Unhandled error, for example the database is unreachable.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: { code: INTERNAL_ERROR, message: Internal server error }
+
+  schemas:
+    Money:
+      type: string
+      description: Decimal string with two decimals.
+      pattern: '^-?\d+\.\d{2}$'
+      example: '925.85'
+    Percentage:
+      type: string
+      description: Percentage as a decimal string with two decimals.
+      pattern: '^-?\d+\.\d{2}$'
+      example: '-0.45'
+    DecimalInput:
+      type: [string, number]
+      description: Positive decimal with up to two decimals, as a string or a JSON number.
+      pattern: '^\d+(\.\d{1,2})?$'
+      example: '2777.55'
+    Id:
+      type: integer
+      minimum: 1
+      maximum: 2147483647
+
+    Health:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [ok, unavailable]
+
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              enum: [BAD_REQUEST, NOT_FOUND, CONFLICT, UNPROCESSABLE_ENTITY, INTERNAL_ERROR]
+            message:
+              type: string
+            details:
+              type: array
+              description: Validation issues, present only when the body or query fails validation.
+              items:
+                type: object
+                required: [code, path, message]
+                properties:
+                  code:
+                    type: string
+                  path:
+                    type: array
+                    items:
+                      type: [string, integer]
+                  message:
+                    type: string
+
+    Portfolio:
+      type: object
+      required: [userId, totalAccountValue, availableCash, cashBalance, reservedCash, positions]
+      properties:
+        userId:
+          type: integer
+        totalAccountValue:
+          $ref: '#/components/schemas/Money'
+        availableCash:
+          description: Cash balance minus cash reserved by `NEW` buy orders.
+          $ref: '#/components/schemas/Money'
+        cashBalance:
+          $ref: '#/components/schemas/Money'
+        reservedCash:
+          $ref: '#/components/schemas/Money'
+        positions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Position'
+    Position:
+      type: object
+      required:
+        - instrumentId
+        - ticker
+        - name
+        - quantity
+        - averageCost
+        - lastPrice
+        - marketValue
+        - totalReturnPct
+        - dailyReturnPct
+      properties:
+        instrumentId:
+          type: integer
+        ticker:
+          type: string
+        name:
+          type: string
+        quantity:
+          type: integer
+        averageCost:
+          oneOf:
+            - $ref: '#/components/schemas/Money'
+            - type: 'null'
+        lastPrice:
+          oneOf:
+            - $ref: '#/components/schemas/Money'
+            - type: 'null'
+        marketValue:
+          oneOf:
+            - $ref: '#/components/schemas/Money'
+            - type: 'null'
+        totalReturnPct:
+          oneOf:
+            - $ref: '#/components/schemas/Percentage'
+            - type: 'null'
+        dailyReturnPct:
+          oneOf:
+            - $ref: '#/components/schemas/Percentage'
+            - type: 'null'
+
+    InstrumentSearch:
+      type: object
+      required: [items, limit, offset, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Instrument'
+        limit:
+          type: integer
+        offset:
+          type: integer
+        total:
+          type: integer
+          description: Number of matches, not only those in the page.
+    Instrument:
+      type: object
+      required: [id, ticker, name, type, lastPrice]
+      properties:
+        id:
+          type: integer
+        ticker:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+          example: ACCIONES
+        lastPrice:
+          oneOf:
+            - $ref: '#/components/schemas/Money'
+            - type: 'null'
+
+    SubmitOrderRequest:
+      oneOf:
+        - $ref: '#/components/schemas/TradeBySize'
+        - $ref: '#/components/schemas/TradeByAmount'
+        - $ref: '#/components/schemas/Transfer'
+    TradeBySize:
+      type: object
+      title: Trade by size
+      description: '`BUY` or `SELL` a whole number of shares.'
+      required: [userId, instrumentId, side, type, size]
+      properties:
+        userId:
+          $ref: '#/components/schemas/Id'
+        instrumentId:
+          $ref: '#/components/schemas/Id'
+        side:
+          type: string
+          enum: [BUY, SELL]
+        type:
+          type: string
+          enum: [MARKET, LIMIT]
+        size:
+          type: integer
+          minimum: 1
+          maximum: 2147483647
+          description: Whole shares, as a JSON integer. A fraction or a string is 400.
+        price:
+          description: Required for `LIMIT`, not allowed for `MARKET`. Up to 99999999.99.
+          $ref: '#/components/schemas/DecimalInput'
+      example: { userId: 1, instrumentId: 47, side: BUY, type: LIMIT, size: 1, price: '900' }
+    TradeByAmount:
+      type: object
+      title: Trade by amount
+      description: |
+        `BUY` or `SELL` up to `amount` pesos. The size is the whole part of `amount / price`, where the price
+        is the last close for `MARKET` or `price` for `LIMIT`.
+      required: [userId, instrumentId, side, type, amount]
+      properties:
+        userId:
+          $ref: '#/components/schemas/Id'
+        instrumentId:
+          $ref: '#/components/schemas/Id'
+        side:
+          type: string
+          enum: [BUY, SELL]
+        type:
+          type: string
+          enum: [MARKET, LIMIT]
+        amount:
+          description: Pesos to invest, up to 99999999.99.
+          $ref: '#/components/schemas/DecimalInput'
+        price:
+          description: Required for `LIMIT`, not allowed for `MARKET`. Up to 99999999.99.
+          $ref: '#/components/schemas/DecimalInput'
+      example: { userId: 1, instrumentId: 47, side: BUY, type: MARKET, amount: '5000' }
+    Transfer:
+      type: object
+      title: Cash transfer
+      description: '`CASH_IN` or `CASH_OUT` of pesos, cents kept. Always `MARKET`, at price 1.'
+      required: [userId, side, amount]
+      properties:
+        userId:
+          $ref: '#/components/schemas/Id'
+        instrumentId:
+          description: Optional. Defaults to the ARS instrument; any other instrument is 422.
+          $ref: '#/components/schemas/Id'
+        side:
+          type: string
+          enum: [CASH_IN, CASH_OUT]
+        type:
+          type: string
+          enum: [MARKET]
+          description: Optional. `LIMIT` is 400.
+        amount:
+          description: Pesos to move, up to 999999999999999999.99.
+          $ref: '#/components/schemas/DecimalInput'
+      not:
+        anyOf:
+          - required: [size]
+          - required: [price]
+      example: { userId: 2, side: CASH_IN, amount: '2777.55' }
+
+    Order:
+      oneOf:
+        - $ref: '#/components/schemas/TradeOrder'
+        - $ref: '#/components/schemas/TransferOrder'
+    OrderFields:
+      type: object
+      required: [id, userId, instrumentId, side, type, status, size, price, datetime]
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        instrumentId:
+          type: integer
+        type:
+          type: string
+          enum: [MARKET, LIMIT]
+        status:
+          type: string
+          enum: [NEW, FILLED, REJECTED, CANCELLED]
+        price:
+          $ref: '#/components/schemas/Money'
+        datetime:
+          type: string
+          format: date-time
+    TradeOrder:
+      title: Trade order
+      allOf:
+        - $ref: '#/components/schemas/OrderFields'
+        - type: object
+          properties:
+            side:
+              type: string
+              enum: [BUY, SELL]
+            size:
+              type: integer
+              description: Whole shares.
+    TransferOrder:
+      title: Transfer order
+      allOf:
+        - $ref: '#/components/schemas/OrderFields'
+        - type: object
+          properties:
+            side:
+              type: string
+              enum: [CASH_IN, CASH_OUT]
+            size:
+              $ref: '#/components/schemas/Money'
+              description: Pesos moved, as a decimal string with two decimals.
