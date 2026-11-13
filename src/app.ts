@@ -1,17 +1,17 @@
 import express, { type Express } from 'express';
 import type pg from 'pg';
-import { createDocsRouter } from './openapi/router.ts';
-import { createHealthRouter } from './health/health.router.ts';
-import { createInstrumentsRouter } from './instruments/http/router.ts';
-import { createMetricsRouter, requestMetrics } from './metrics/http.ts';
-import type { AppMetrics } from './metrics/metrics.ts';
-import { createOrdersRouter } from './orders/http/router.ts';
-import { createPortfolioRouter } from './portfolio/http/router.ts';
-import type { EventPublisher } from './shared/events/order-event.ts';
-import { errorMiddleware, routeNotFound } from './shared/http/error-middleware.ts';
-import type { Logger } from './shared/logger.ts';
-import type { Cache } from './shared/ports/cache.ts';
-import type { Clock } from './shared/ports/clock.ts';
+import { createDocsRouter } from './platform/http/openapi/router.ts';
+import { createHealthRouter } from './platform/http/health.router.ts';
+import { createInstrumentsRouter } from './modules/instruments/http/router.ts';
+import { createMetricsRouter, requestMetrics } from './platform/observability/http-metrics.ts';
+import type { AppMetrics } from './platform/observability/metrics.ts';
+import { createOrdersRouter } from './modules/orders/http/router.ts';
+import { createPortfolioRouter } from './modules/portfolio/http/router.ts';
+import type { EventPublisher } from './modules/order-events/application/event-publisher.ts';
+import { errorMiddleware, routeNotFound } from './platform/http/error-middleware.ts';
+import type { Logger } from './platform/logger.ts';
+import type { Cache } from './platform/cache/cache.ts';
+import type { Clock } from './platform/clock.ts';
 
 /** Everything the app needs from the outside. Tests swap these for in-memory versions. */
 export interface AppDeps {

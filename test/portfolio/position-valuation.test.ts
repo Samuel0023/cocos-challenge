@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { valuePortfolio, type Holding } from '../../src/portfolio/domain/position-valuation.ts';
-import { Money } from '../../src/shared/domain/money.ts';
+import {
+  valuePortfolio,
+  type Holding,
+} from '../../src/modules/portfolio/domain/position-valuation.ts';
+import { Money } from '../../src/platform/money.ts';
 
 const holding = (overrides: Partial<Holding> = {}): Holding => ({
   instrumentId: 1,

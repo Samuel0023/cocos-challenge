@@ -1,8 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { hasFundsFor } from '../../src/orders/domain/funds-policy.ts';
-import { initialStatus, isTransfer, sameSize, sizeToJson } from '../../src/orders/domain/order.ts';
-import { sizeFromAmount } from '../../src/orders/domain/order-sizing.ts';
-import { Money } from '../../src/shared/domain/money.ts';
+import { hasFundsFor } from '../../src/modules/orders/domain/funds-policy.ts';
+import {
+  initialStatus,
+  isTransfer,
+  sameSize,
+  sizeToJson,
+} from '../../src/modules/orders/domain/order.ts';
+import { sizeFromAmount } from '../../src/modules/orders/domain/order-sizing.ts';
+import { Money } from '../../src/platform/money.ts';
 
 describe('initialStatus', () => {
   it('fills accepted MARKET orders and leaves accepted LIMIT orders NEW', () => {

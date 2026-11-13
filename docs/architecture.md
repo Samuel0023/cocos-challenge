@@ -43,42 +43,63 @@ flowchart LR
 
 ## Folders
 
-Code is organised by feature, not by technical layer.
+Business features live in `src/modules/`, and every module uses the same layers: `domain/`, `application/` (use cases and ports), `infra/` (adapters) and `http/` (router). A module only has the layers it needs. Technical pieces that any module can use live in `src/platform/`, the role `pkg/` plays in a Go project.
 
-| Folder             | Content                                                                                                                            |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `src/app.ts`       | `buildApp(deps)`: wires routers and middleware. `AppDeps` lists what the app needs                                                 |
-| `src/main.ts`      | Composition root: reads config, builds adapters, starts the server                                                                 |
-| `src/config.ts`    | Environment variables, validated with Zod                                                                                          |
-| `src/health/`      | `GET /health`                                                                                                                      |
-| `src/instruments/` | Search: `application/` (use case, port), `infra/` (PostgreSQL), `http/` (router)                                                   |
-| `src/portfolio/`   | Portfolio: `domain/position-valuation.ts`, `application/`, `infra/`, `http/`                                                       |
-| `src/orders/`      | Orders: `domain/`, `application/` (`SubmitOrder`, `CancelOrder`, `ports.ts`), `infra/`, `http/`                                    |
-| `src/marketdata/`  | Latest quotes: PostgreSQL repository and the cached wrapper                                                                        |
-| `src/events/`      | `RecordOrderEvent` use case, the `OrderEventStore` port with its PostgreSQL adapter, and `SqsOrderEventConsumer` (the SQS loop)    |
-| `src/metrics/`     | Metrics ports and the no-op implementation, `PrometheusMetrics` (prom-client), request-metrics middleware and `GET /metrics`       |
-| `src/shared/`      | `Money`, errors and error middleware, `Cache` and `Clock` ports, cache adapters, database pool, logger, event types and publishers |
-| `test/`            | Tests by feature. `test/support/` has the global setup and `createTestApp`                                                         |
-| `db/`              | `database.sql` (from the challenge) and `migrations/`                                                                              |
+```text
+src/
+  app.ts  main.ts  config.ts
+  modules/
+    orders/         domain/ application/ infra/ http/
+    portfolio/      domain/ application/ infra/ http/
+    instruments/    application/ infra/ http/
+    marketdata/     application/ (MarketDataRepository port, Quote)  infra/ (PostgreSQL, cached wrapper)
+    order-events/   domain/ (OrderEvent)  application/ (EventPublisher, OrderEventStore, RecordOrderEvent)
+                    infra/ (SNS, log and in-memory publishers, PostgreSQL store, SQS consumer)
+  platform/
+    http/           errors, error middleware, GET /health, openapi/ (document and Swagger UI)
+    observability/  metrics ports, PrometheusMetrics, request metrics and GET /metrics
+    postgres/       database pool and withTransaction
+    cache/          Cache port, Valkey, no-op and in-memory adapters
+    money.ts  clock.ts  logger.ts
+```
+
+| Path                        | Content                                                                                                                                    |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/app.ts`                | `buildApp(deps)`: wires routers and middleware. `AppDeps` lists what the app needs                                                         |
+| `src/main.ts`               | Composition root: reads config, builds adapters, starts the server                                                                         |
+| `src/config.ts`             | Environment variables, validated with Zod                                                                                                  |
+| `src/modules/instruments/`  | Search: `application/` (use case, port), `infra/` (PostgreSQL), `http/` (router)                                                           |
+| `src/modules/portfolio/`    | Portfolio: `domain/position-valuation.ts`, `application/`, `infra/`, `http/`                                                               |
+| `src/modules/orders/`       | Orders: `domain/`, `application/` (`SubmitOrder`, `CancelOrder`, `ports.ts`), `infra/`, `http/`                                            |
+| `src/modules/marketdata/`   | Latest quotes: the port, the PostgreSQL repository and the cached wrapper                                                                  |
+| `src/modules/order-events/` | Event types, `EventPublisher` and its adapters, `RecordOrderEvent`, `OrderEventStore` and `SqsOrderEventConsumer` (the SQS loop)           |
+| `src/platform/`             | `Money`, `Clock`, logger, HTTP errors and middleware, health and OpenAPI routes, metrics, cache, database pool                             |
+| `test/`                     | Tests by module (`test/orders/`, `test/order-events/`, ...) and `test/platform/`. `test/support/` has the global setup and `createTestApp` |
+| `db/`                       | `database.sql` (from the challenge) and `migrations/`                                                                                      |
+
+Two dependency rules keep the folders honest:
+
+1. `src/platform/` never imports from `src/modules/`. ESLint enforces it (`no-restricted-imports` in `eslint.config.js`).
+2. A module uses another module only through its `application/` ports or `domain/` types, never its `infra/` or `http/`. Wiring adapters to ports is composition and happens in `src/app.ts`, `src/main.ts` and each module's `http/router.ts`. Today the orders and portfolio routers build `PgMarketDataRepository` and `CachedMarketDataRepository` that way.
 
 ## Ports and adapters
 
-| Port                                                             | Defined in                                         | Adapters                                                                   |
-| ---------------------------------------------------------------- | -------------------------------------------------- | -------------------------------------------------------------------------- |
-| `OrderRepository`                                                | `orders/application/ports.ts`                      | `PgOrderRepository`                                                        |
-| `AccountReader` (orders)                                         | `orders/application/ports.ts`                      | `PgAccountReader` in `orders/infra/`                                       |
-| `InstrumentRepository` (orders)                                  | `orders/application/ports.ts`                      | `PgOrderInstrumentRepository`                                              |
-| `PriceSource`                                                    | `orders/application/ports.ts`                      | `MarketPriceSource` over the cached market data                            |
-| `UnitOfWork`, `Transaction`                                      | `orders/application/ports.ts`                      | `PgUnitOfWork` (transaction plus user row lock)                            |
-| `AccountReader` (portfolio)                                      | `portfolio/application/account-reader.ts`          | `PgAccountReader` in `portfolio/infra/`                                    |
-| `InstrumentRepository` (search)                                  | `instruments/application/instrument-repository.ts` | `PgInstrumentRepository`                                                   |
-| `MarketDataRepository`                                           | `marketdata/market-data-repository.ts`             | `PgMarketDataRepository`, `CachedMarketDataRepository`                     |
-| `Cache`                                                          | `shared/ports/cache.ts`                            | `ValkeyCache`, `NoCache`, `InMemoryCache` (tests)                          |
-| `Clock`                                                          | `shared/ports/clock.ts`                            | `systemClock`                                                              |
-| `EventPublisher`                                                 | `shared/events/order-event.ts`                     | `SnsEventPublisher`, `LogEventPublisher`, `InMemoryEventPublisher` (tests) |
-| `OrderEventQueue`                                                | `events/sqs-order-event-consumer.ts`               | `SqsOrderEventQueue`, a fake queue in tests                                |
-| `AppMetrics`, `OrderMetrics`, `OrderEventMetrics`, `HttpMetrics` | `metrics/metrics.ts`                               | `PrometheusMetrics`, `noopMetrics`                                         |
-| `OrderEventStore`                                                | `events/order-event-store.ts`                      | `PgOrderEventStore`                                                        |
+| Port                                                             | Defined in                                                 | Adapters                                                                   |
+| ---------------------------------------------------------------- | ---------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `OrderRepository`                                                | `modules/orders/application/ports.ts`                      | `PgOrderRepository`                                                        |
+| `AccountReader` (orders)                                         | `modules/orders/application/ports.ts`                      | `PgAccountReader` in `modules/orders/infra/`                               |
+| `InstrumentRepository` (orders)                                  | `modules/orders/application/ports.ts`                      | `PgOrderInstrumentRepository`                                              |
+| `PriceSource`                                                    | `modules/orders/application/ports.ts`                      | `MarketPriceSource` over the cached market data                            |
+| `UnitOfWork`, `Transaction`                                      | `modules/orders/application/ports.ts`                      | `PgUnitOfWork` (transaction plus user row lock)                            |
+| `AccountReader` (portfolio)                                      | `modules/portfolio/application/account-reader.ts`          | `PgAccountReader` in `modules/portfolio/infra/`                            |
+| `InstrumentRepository` (search)                                  | `modules/instruments/application/instrument-repository.ts` | `PgInstrumentRepository`                                                   |
+| `MarketDataRepository`                                           | `modules/marketdata/application/market-data-repository.ts` | `PgMarketDataRepository`, `CachedMarketDataRepository`                     |
+| `Cache`                                                          | `platform/cache/cache.ts`                                  | `ValkeyCache`, `NoCache`, `InMemoryCache` (tests)                          |
+| `Clock`                                                          | `platform/clock.ts`                                        | `systemClock`                                                              |
+| `EventPublisher`                                                 | `modules/order-events/application/event-publisher.ts`      | `SnsEventPublisher`, `LogEventPublisher`, `InMemoryEventPublisher` (tests) |
+| `OrderEventQueue`                                                | `modules/order-events/infra/sqs-order-event-consumer.ts`   | `SqsOrderEventQueue`, a fake queue in tests                                |
+| `AppMetrics`, `OrderMetrics`, `OrderEventMetrics`, `HttpMetrics` | `platform/observability/metrics.ts`                        | `PrometheusMetrics`, `noopMetrics`                                         |
+| `OrderEventStore`                                                | `modules/order-events/application/order-event-store.ts`    | `PgOrderEventStore`                                                        |
 
 Rules that shape the code:
 

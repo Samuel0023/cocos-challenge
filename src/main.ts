@@ -3,18 +3,21 @@ import { SQSClient } from '@aws-sdk/client-sqs';
 import { z } from 'zod';
 import { buildApp } from './app.ts';
 import { loadConfig, type Config } from './config.ts';
-import { PrometheusMetrics } from './metrics/prometheus-metrics.ts';
-import { PgOrderEventStore } from './events/pg-order-event-store.ts';
-import { RecordOrderEvent } from './events/record-order-event.ts';
-import { SqsOrderEventConsumer, SqsOrderEventQueue } from './events/sqs-order-event-consumer.ts';
-import { LogEventPublisher } from './shared/events/log-event-publisher.ts';
-import type { EventPublisher } from './shared/events/order-event.ts';
-import { SnsEventPublisher } from './shared/events/sns-event-publisher.ts';
-import { NoCache } from './shared/infra/cache/no-cache.ts';
-import { ValkeyCache } from './shared/infra/cache/valkey-cache.ts';
-import { createPool } from './shared/infra/postgres/db.ts';
-import { createLogger } from './shared/logger.ts';
-import { systemClock } from './shared/ports/clock.ts';
+import { PrometheusMetrics } from './platform/observability/prometheus-metrics.ts';
+import { PgOrderEventStore } from './modules/order-events/infra/pg-order-event-store.ts';
+import { RecordOrderEvent } from './modules/order-events/application/record-order-event.ts';
+import {
+  SqsOrderEventConsumer,
+  SqsOrderEventQueue,
+} from './modules/order-events/infra/sqs-order-event-consumer.ts';
+import { LogEventPublisher } from './modules/order-events/infra/log-event-publisher.ts';
+import type { EventPublisher } from './modules/order-events/application/event-publisher.ts';
+import { SnsEventPublisher } from './modules/order-events/infra/sns-event-publisher.ts';
+import { NoCache } from './platform/cache/no-cache.ts';
+import { ValkeyCache } from './platform/cache/valkey-cache.ts';
+import { createPool } from './platform/postgres/db.ts';
+import { createLogger } from './platform/logger.ts';
+import { systemClock } from './platform/clock.ts';
 
 function readConfig(): Config {
   try {

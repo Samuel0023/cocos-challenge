@@ -43,7 +43,7 @@ test: ## Run unit and functional tests (needs Docker)
 	npm test
 
 test-aws: ## Run the SNS -> SQS integration test against AWS Emulator (after make services)
-	$(AWS_ENV) AWS_EMULATOR_TESTS=true npx vitest run test/events/aws-emulator.integration.test.ts
+	$(AWS_ENV) AWS_EMULATOR_TESTS=true npx vitest run test/order-events/aws-emulator.integration.test.ts
 
 lint: ## Run ESLint and Prettier
 	npm run lint

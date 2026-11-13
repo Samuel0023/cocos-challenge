@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { CachedMarketDataRepository } from '../../src/marketdata/cached-market-data-repository.ts';
-import { PgMarketDataRepository } from '../../src/marketdata/pg-market-data-repository.ts';
+import { CachedMarketDataRepository } from '../../src/modules/marketdata/infra/cached-market-data-repository.ts';
+import { PgMarketDataRepository } from '../../src/modules/marketdata/infra/pg-market-data-repository.ts';
 import { createTestApp, type TestApp } from '../support/test-app.ts';
 
 describe('latest quotes', () => {

@@ -21,7 +21,7 @@ Conventions:
 
 ## OpenAPI and Swagger UI
 
-The machine-readable description of these endpoints is `src/openapi/openapi.yaml` (OpenAPI 3.1). With the API running, Swagger UI is at http://localhost:3000/docs and the raw document at http://localhost:3000/openapi.yaml. `test/docs/openapi.test.ts` checks that the document and the mounted routes match.
+The machine-readable description of these endpoints is `src/platform/http/openapi/openapi.yaml` (OpenAPI 3.1). With the API running, Swagger UI is at http://localhost:3000/docs and the raw document at http://localhost:3000/openapi.yaml. `test/openapi/openapi.test.ts` checks that the document and the mounted routes match.
 
 ## GET /health
 

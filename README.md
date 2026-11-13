@@ -71,7 +71,7 @@ Functional tests use Testcontainers, so a Docker daemon must be running. The Mak
 
 ## Documentation
 
-- [docs/architecture.md](docs/architecture.md): layers, ports, adapters, services
+- [docs/architecture.md](docs/architecture.md): layers, folders (`src/modules/` for features, `src/platform/` for technical pieces), ports, adapters, services
 - [docs/flows.md](docs/flows.md): step-by-step flows, statuses and errors
 - [docs/api.md](docs/api.md): requests and responses
 - [docs/local-setup.md](docs/local-setup.md): Docker, environment variables, troubleshooting

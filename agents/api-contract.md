@@ -21,5 +21,5 @@ Reference for agents. Full examples: [docs/api.md](../docs/api.md). Runnable req
 - Error body: `{ "error": { "code", "message", "details"? } }`.
 - Search `limit` is 1 to 100 (default 20).
 - `GET /metrics` is Prometheus text. Metric names and labels are a contract for the Grafana dashboard: renaming one means updating `docker/grafana/dashboards/cocos-api.json`.
-- Changing a status code, field name or required header is a breaking change. Update `docs/api.md`, `requests.http`, `src/openapi/openapi.yaml` and the tests together.
-- `src/openapi/openapi.yaml` is the machine-readable contract (served at `/openapi.yaml`, Swagger UI at `/docs`). It changes together with the routes: `test/docs/openapi.test.ts` fails when a route is added, removed or answers a status the document does not declare.
+- Changing a status code, field name or required header is a breaking change. Update `docs/api.md`, `requests.http`, `src/platform/http/openapi/openapi.yaml` and the tests together.
+- `src/platform/http/openapi/openapi.yaml` is the machine-readable contract (served at `/openapi.yaml`, Swagger UI at `/docs`). It changes together with the routes: `test/openapi/openapi.test.ts` fails when a route is added, removed or answers a status the document does not declare.

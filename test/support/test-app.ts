@@ -2,12 +2,12 @@ import { randomUUID } from 'node:crypto';
 import pg from 'pg';
 import { inject } from 'vitest';
 import { buildApp, type AppDeps } from '../../src/app.ts';
-import { PrometheusMetrics } from '../../src/metrics/prometheus-metrics.ts';
-import { InMemoryEventPublisher } from '../../src/shared/events/in-memory-event-publisher.ts';
-import { InMemoryCache } from '../../src/shared/infra/cache/in-memory-cache.ts';
-import { createPool } from '../../src/shared/infra/postgres/db.ts';
-import { silentLogger } from '../../src/shared/logger.ts';
-import { systemClock } from '../../src/shared/ports/clock.ts';
+import { PrometheusMetrics } from '../../src/platform/observability/prometheus-metrics.ts';
+import { InMemoryEventPublisher } from '../../src/modules/order-events/infra/in-memory-event-publisher.ts';
+import { InMemoryCache } from '../../src/platform/cache/in-memory-cache.ts';
+import { createPool } from '../../src/platform/postgres/db.ts';
+import { silentLogger } from '../../src/platform/logger.ts';
+import { systemClock } from '../../src/platform/clock.ts';
 
 export interface TestApp {
   app: ReturnType<typeof buildApp>;
