@@ -39,7 +39,7 @@ Strategy: `single-pr`. Forecast: about 200 authored changed Markdown lines (most
   - `.agents/decisions.md`, `.agents/use-cases.md`, `AGENTS.md:7`: drop or shorten the dashboard and metrics sentences.
   - Delete `docs/images/load-test-*.png`.
   - Checks: no dangling links or image references; `make lint`; structural readback.
-- [ ] **T2 — Trim the diagrams.** Route: delegated (same writer, after T1).
+- [x] **T2 — Trim the diagrams.** Route: delegated (same writer, after T1).
   - Delete the "Local environment" and "AWS architecture" pages and their PNGs.
   - Hexagonal architecture: remove the Prometheus box, the PrometheusMetrics adapter, the Metrics ports and the scrape edge.
   - Flow: event consumer: remove the Metrics box, its legend entry, its edge, and the metrics wording in the loop note.
@@ -57,9 +57,11 @@ Strategy: `single-pr`. Forecast: about 200 authored changed Markdown lines (most
 ## Progress and evidence
 
 - 2026-11-14: read-only audit completed; owner approved the trims including deleting the two diagram pages.
-- T1: done in the commit `docs: trim operational detail from the docs` (hash recorded with T2). Risk tier: passive. Observed: relative link and image check over 14 Markdown files, 17 links, 0 broken; `eslint .` clean; `prettier --check .` clean for every tracked file. `make lint` itself exits 1 only because of the untracked `.atl/skill-registry.md`, which is outside this feature. Also dropped the long-polling label and the dead-letter edge from the Events mermaid in `docs/architecture.md`.
-- T2: pending.
+- T1: done in the commit `docs: trim operational detail from the docs` (`ecafc34`). Risk tier: passive. Observed: relative link and image check over 14 Markdown files, 17 links, 0 broken; `eslint .` clean; `prettier --check .` clean for every tracked file. `make lint` itself exits 1 only because of the untracked `.atl/skill-registry.md`, which is outside this feature. Also dropped the long-polling label and the dead-letter edge from the Events mermaid in `docs/architecture.md`.
+- T2: done in the commit `docs(diagrams): drop operational pages and metrics cells` (hash in the line below). Risk tier: passive. The drawio is uncompressed XML and was edited with a script; the six pages were re-exported with draw.io desktop 21.6.5 (`--scale 1 --border 20`, same settings as the previous exports). Observed: well-formed XML, 6 pages, 0 edges or parents pointing at a missing cell, 0 matches for Prometheus, Grafana or metric in the file; visual readback of the six PNGs shows no overlap or orphan shape. Beyond the listed cells: the consumer failure box and the receive step no longer spell out the visibility timeout, dead-letter queue and long polling; the search page mentions the cache in its subtitle; the Valkey legend entry was removed from the submit, portfolio and search pages. Valkey stays on the hexagonal page as an adapter.
+- T2 commit: pending-hash.
+- Verification at close: `make typecheck` passed; `make test` 189 passed, 1 skipped (24 files passed, 1 skipped); `eslint .` and `prettier --check` on tracked files passed; `make lint` exits 1 only on the untracked `.atl/skill-registry.md`.
 
 ## Next step
 
-Run T2.
+Owner review, then push and pull request at the owner's decision. `make lint` needs `.atl/` formatted or ignored by Prettier to pass on this checkout.
