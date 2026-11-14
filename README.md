@@ -1,45 +1,61 @@
 # Cocos Challenge API
 
-REST API for a broker: portfolio, instrument search and order submission, with order events on SNS/SQS. Built with Node.js, Express 5 and TypeScript, hexagonal architecture, on the PostgreSQL schema provided by the challenge.
+A REST API for a broker. With it you can:
 
-## Prerequisites
+- see a user's portfolio: account value, available cash and positions
+- search instruments by ticker or name
+- submit buy and sell orders, and cash transfers
+- cancel an order that has not been executed yet
 
-- Node.js 24 or newer (the code runs as TypeScript through type stripping)
-- Docker, with a running daemon
+Every order that is stored or cancelled is also published as an event.
+
+It is built with Node.js, Express 5 and TypeScript, follows a hexagonal architecture, and uses the PostgreSQL schema the challenge provided.
+
+## Run it
+
+You need:
+
+- Node.js 24 or newer
+- Docker, with the daemon running
 - Make
 
-## Quick start
+Then:
 
 ```sh
 npm ci
-make services   # PostgreSQL, Valkey, AWS Emulator and the monitoring stack in Docker
-make dev        # API on the host, http://localhost:3000, SNS/SQS on AWS Emulator
+make services   # starts PostgreSQL and the other services in Docker
+make dev        # starts the API at http://localhost:3000
 ```
 
-| Command          | What it does                                                                       |
-| ---------------- | ---------------------------------------------------------------------------------- |
-| `make services`  | Starts PostgreSQL, Valkey, AWS Emulator (topic and queue) and the monitoring stack |
-| `make dev`       | Runs the API on the host with file watching, events on AWS Emulator                |
-| `make up`        | Starts everything in Docker, API included                                          |
-| `make test`      | Runs unit and functional tests (needs Docker)                                      |
-| `make test-aws`  | Runs the SNS to SQS integration test against AWS Emulator (after `make services`)  |
-| `make load`      | Runs the k6 load test against a running API (after `make dev` or `make up`)        |
-| `make lint`      | Runs ESLint and Prettier                                                           |
-| `make typecheck` | Runs the TypeScript compiler without emitting                                      |
-| `make down`      | Stops and removes the containers                                                   |
+Prefer everything in Docker, API included? Run `make up` instead of the last two commands. Run `make down` before switching from one way to the other.
 
-Run `make down` before switching between `make services` and `make up`.
+## Try it
 
-Check it works:
+Once the API is running, ask for a portfolio:
 
 ```sh
-curl http://localhost:3000/health
 curl http://localhost:3000/users/1/portfolio
 ```
 
-`requests.http` has one request per endpoint and per error case (VS Code REST Client).
+Search for an instrument:
 
-After starting the API, the interactive docs (Swagger UI) are at http://localhost:3000/docs and the raw OpenAPI document at http://localhost:3000/openapi.yaml.
+```sh
+curl "http://localhost:3000/instruments?q=ypf"
+```
+
+Buy two shares at market price:
+
+```sh
+curl -X POST http://localhost:3000/orders \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: 5b3f1c1e-9f0a-4c1d-8a55-2f4e6d7c8b90" \
+  -d '{ "userId": 1, "instrumentId": 47, "side": "BUY", "type": "MARKET", "size": 2 }'
+```
+
+There are two easier ways to explore the rest:
+
+- **Swagger UI** at http://localhost:3000/docs lets you call every endpoint from the browser.
+- **`requests.http`** has one request per endpoint and per error case, ready to run with the VS Code REST Client extension.
 
 ## Endpoints
 
@@ -50,13 +66,16 @@ After starting the API, the interactive docs (Swagger UI) are at http://localhos
 | `POST /orders`                       | Submits an order or a cash transfer         | 201, 400, 404, 413, 415, 422 |
 | `POST /orders/:orderId/cancel`       | Cancels an order in `NEW`                   | 200, 400, 404, 409           |
 
-`POST /orders` requires an `Idempotency-Key` header with a UUID. There is no authentication: the challenge does not ask for it. `GET /health` and `GET /metrics` are the operational endpoints.
+Two things to know before you call them:
+
+- `POST /orders` needs an `Idempotency-Key` header with a UUID. Sending the same request again with the same key returns the same order instead of creating a second one.
+- There is no authentication, because the challenge does not ask for it.
+
+The full request and response formats are in [docs/api.md](docs/api.md).
 
 ## Events
 
-Each stored or cancelled order is published to an SNS topic. A consumer inside the API reads the SQS queue and stores the events in `analytics.order_events`. Locally, SNS and SQS run on AWS Emulator.
-
-`make services` also starts Prometheus (http://localhost:9090) and a Grafana dashboard (http://localhost:3001/d/cocos-api/cocos-api).
+Each stored or cancelled order is published to an SNS topic. A consumer inside the API reads the SQS queue and stores the events in `analytics.order_events`. On your machine, SNS and SQS run on AWS Emulator, so you need no AWS account.
 
 ## Tests
 
@@ -64,16 +83,34 @@ Each stored or cancelled order is published to an SNS topic. A consumer inside t
 make test
 ```
 
-Functional tests run against PostgreSQL in Testcontainers, so Docker must be running.
+The tests start their own PostgreSQL container, so Docker must be running. You do not need `make services` first.
 
-## Documentation
+## Commands
 
-| Document                                     | Content                                             |
-| -------------------------------------------- | --------------------------------------------------- |
-| [docs/decisions.md](docs/decisions.md)       | Key decisions, schema changes and known limitations |
-| [docs/architecture.md](docs/architecture.md) | Layers, folders and events                          |
-| [docs/flows.md](docs/flows.md)               | One diagram per flow, statuses and formulas         |
-| [docs/api.md](docs/api.md)                   | Requests, responses and errors                      |
-| [docs/local-setup.md](docs/local-setup.md)   | Docker services, variables and troubleshooting      |
+| Command          | What it does                                                                |
+| ---------------- | --------------------------------------------------------------------------- |
+| `make services`  | Starts PostgreSQL, Valkey, AWS Emulator and the monitoring stack in Docker  |
+| `make dev`       | Runs the API on your machine and restarts it when a file changes            |
+| `make up`        | Starts everything in Docker, API included                                   |
+| `make down`      | Stops and removes the containers                                            |
+| `make test`      | Runs the unit and functional tests                                          |
+| `make test-aws`  | Runs the SNS to SQS integration test (after `make services`)                |
+| `make load`      | Runs the k6 load test against a running API (after `make dev` or `make up`) |
+| `make lint`      | Runs ESLint and Prettier                                                    |
+| `make typecheck` | Runs the TypeScript compiler without emitting files                         |
 
-Diagrams are also in `docs/diagrams/cocos-solution.drawio`, with one PNG export per page in the same folder: [the hexagonal view](docs/diagrams/hexagonal-architecture.png) and one page per flow. [AGENTS.md](AGENTS.md) holds the context for coding agents, with the skills [run-service](.agents/skills/run-service/SKILL.md), [add-module](.agents/skills/add-module/SKILL.md) and [add-use-case](.agents/skills/add-use-case/SKILL.md).
+The API also exposes `GET /health` and `GET /metrics` for operations. `make services` starts Prometheus (http://localhost:9090) and a Grafana dashboard (http://localhost:3001/d/cocos-api/cocos-api) that read them.
+
+## Learn more
+
+| If you want to know                                | Read                                         |
+| -------------------------------------------------- | -------------------------------------------- |
+| Why it was built this way, and what it leaves out  | [docs/decisions.md](docs/decisions.md)       |
+| How the code is organised                          | [docs/architecture.md](docs/architecture.md) |
+| What happens step by step in each flow             | [docs/flows.md](docs/flows.md)               |
+| The exact requests, responses and errors           | [docs/api.md](docs/api.md)                   |
+| How the local environment works, and how to fix it | [docs/local-setup.md](docs/local-setup.md)   |
+
+The diagrams are in `docs/diagrams/`: [the hexagonal view](docs/diagrams/hexagonal-architecture.png) and one image per flow, all exported from `cocos-solution.drawio`.
+
+Working with a coding agent? [AGENTS.md](AGENTS.md) holds its context, and the skills [run-service](.agents/skills/run-service/SKILL.md), [add-module](.agents/skills/add-module/SKILL.md) and [add-use-case](.agents/skills/add-use-case/SKILL.md) cover the common tasks.

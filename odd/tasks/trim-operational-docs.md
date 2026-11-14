@@ -47,6 +47,10 @@ Strategy: `single-pr`. Forecast: about 200 authored changed Markdown lines (most
   - Re-export every remaining page to its PNG with the draw.io desktop CLI.
   - Checks: the drawio file is well-formed XML and opens; no edge points at a deleted cell; each remaining page has a fresh PNG; visual readback of the changed PNGs.
 
+- [x] **T3 — Make the README reader-friendly.** Route: inline (one understood file). Requested by the owner on 2026-11-14 after T1 and T2.
+  - Lead with what the API lets you do, then run it, try it (three copy-paste calls), endpoints, events, tests, commands, and where to read more. Operational endpoints stay as one line.
+  - Checks: Prettier on tracked files; links resolve; the idempotency sentence matches `docs/decisions.md`.
+
 ## Acceptance criteria
 
 - `/health`, `/metrics`, Prometheus, Grafana and k6 appear in the Markdown docs only as short mentions, never as sections, tables or diagram nodes.
@@ -61,6 +65,8 @@ Strategy: `single-pr`. Forecast: about 200 authored changed Markdown lines (most
 - T2: done in the commit `docs(diagrams): drop operational pages and metrics cells` (hash below). Risk tier: passive. The drawio is uncompressed XML and was edited with a script; the six pages were re-exported with draw.io desktop 21.6.5 (`--scale 1 --border 20`, same settings as the previous exports). Observed: well-formed XML, 6 pages, 0 edges or parents pointing at a missing cell, 0 matches for Prometheus, Grafana or metric in the file; visual readback of the six PNGs shows no overlap or orphan shape. Beyond the listed cells: the consumer failure box and the receive step no longer spell out the visibility timeout, dead-letter queue and long polling; the search page mentions the cache in its subtitle; the Valkey legend entry was removed from the submit, portfolio and search pages. Valkey stays on the hexagonal page as an adapter.
 - T2 commit: `2a89cf7`.
 - Verification at close: `make typecheck` passed; `make test` 189 passed, 1 skipped (24 files passed, 1 skipped); `eslint .` and `prettier --check` on tracked files passed; `make lint` exits 1 only on the untracked `.atl/skill-registry.md`.
+
+- T3: README rewritten for readers; risk tier: passive; `prettier --check . "!.atl"` passed; structural readback done. Commit: see `git log` (`docs(readme): make the README easier to read`).
 
 ## Next step
 
