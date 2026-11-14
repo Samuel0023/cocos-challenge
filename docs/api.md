@@ -8,11 +8,10 @@ Requests, responses and status codes. With the API running, the same contract is
 | `GET /instruments?q=&limit=&offset=` | Searches instruments by ticker or name      |
 | `POST /orders`                       | Submits an order or a cash transfer         |
 | `POST /orders/:orderId/cancel`       | Cancels an order in `NEW`                   |
-| `GET /health`                        | 200 when the database answers, 503 if not   |
-| `GET /metrics`                       | Prometheus metrics                          |
 
 - Bodies are JSON. Money is a decimal string with two decimals (`"925.85"`).
 - There is no authentication. See [known limitations](decisions.md#known-limitations).
+- Two operational endpoints sit outside this contract: `GET /health` (200, or 503 when the database does not answer) and `GET /metrics`.
 
 ## GET /users/:userId/portfolio
 

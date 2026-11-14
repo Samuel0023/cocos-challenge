@@ -4,12 +4,12 @@ Reference for agents. Full examples: [docs/api.md](../docs/api.md). Runnable req
 
 | Endpoint                             | Success | Errors                  |
 | ------------------------------------ | ------- | ----------------------- |
-| `GET /health`                        | 200     | 503                     |
 | `GET /users/:userId/portfolio`       | 200     | 400, 404                |
 | `GET /instruments?q=&limit=&offset=` | 200     | 400                     |
 | `POST /orders`                       | 201     | 400, 404, 413, 415, 422 |
 | `POST /orders/:orderId/cancel`       | 200     | 400, 404, 409           |
-| `GET /metrics`                       | 200     | none                    |
+
+Operational endpoints, outside the business contract: `GET /health` (200, or 503 without the database) and `GET /metrics` (Prometheus text).
 
 ## Rules
 
@@ -22,6 +22,6 @@ Reference for agents. Full examples: [docs/api.md](../docs/api.md). Runnable req
 - A share `size` above 2147483647 is 400. An `amount` that buys more shares than that is 422.
 - No endpoint is authenticated.
 - Search `limit` is 1 to 100 (default 20).
-- `GET /metrics` is Prometheus text. Metric names and labels are a contract for the Grafana dashboard: renaming one means updating `docker/grafana/dashboards/cocos-api.json`.
+- Renaming a metric or one of its labels means updating `docker/grafana/dashboards/cocos-api.json`.
 - Changing a status code, field name or required header is a breaking change. Update `docs/api.md`, `requests.http`, `src/platform/http/openapi/openapi.yaml` and the tests together.
 - `src/platform/http/openapi/openapi.yaml` is the machine-readable contract (served at `/openapi.yaml`, Swagger UI at `/docs`). It changes together with the routes: `test/openapi/openapi.test.ts` fails when a route is added, removed or answers a status the document does not declare.

@@ -18,14 +18,10 @@ flowchart LR
     PG[("postgres :5432")]
     VK["valkey :6379"]
     EM["aws-emulator :9297<br/>SNS + SQS"]
-    PR["prometheus :9090"]
-    GR["grafana :3001"]
   end
   API --> PG
   API --> VK
   API --> EM
-  PR -- "scrape /metrics" --> API
-  GR --> PR
 ```
 
 `make up` runs the same services plus the API in a container. Run `make down` before switching modes: starting one over the other recreates the emulator and wipes its topic and queue.
@@ -38,10 +34,22 @@ flowchart LR
 | `valkey`       | 6379 | Cache. Optional: without `VALKEY_URL` the API runs with no cache                    |
 | `aws-emulator` | 9297 | SNS and SQS                                                                         |
 | `aws-init`     | none | Creates the topic, the queue and the dead-letter queue, then exits                  |
-| `prometheus`   | 9090 | Scrapes the API every 5 seconds                                                     |
-| `grafana`      | 3001 | Dashboard and Explore, no login needed                                              |
 
 The database has no volume: `make down` and a new start restore the seed.
+
+`make services` also starts Prometheus (http://localhost:9090) and Grafana (http://localhost:3001/d/cocos-api/cocos-api, no login).
+
+## Load test
+
+`make load` runs a k6 load test against an API started with `make dev` or `make up`: 20 virtual users for 30 seconds, mixing portfolio, search and a market buy followed by a sell. It writes thousands of orders; `make down` and `make services` restore the seed.
+
+One local run on 13 November 2026 gave these numbers. They show what to expect, not a benchmark.
+
+| Measure               | Value                                                         |
+| --------------------- | ------------------------------------------------------------- |
+| Peak request rate     | About 1,000 requests per second, no errors                    |
+| p95 latency per route | `POST /orders` 70.6 ms, portfolio 29.1 ms, search 9.58 ms     |
+| Order events          | All processed. The backlog peaked near 1,000 and drained to 0 |
 
 ## Environment variables
 
@@ -64,50 +72,7 @@ Validated in `src/config.ts`. `make dev` sets the AWS ones; a `.env` file is opt
 
 ## AWS Emulator
 
-SNS and SQS run on AWS Emulator, built from `docker/aws-emulator/Dockerfile`. Two things about it shape the setup:
-
-- **It serves HTTPS with a certificate valid only for `localhost`.** That is why the API runs on the host in development, and shares the emulator's network in `make up`.
-- **It creates new credentials on every start and keeps its state in memory.** `aws-init` recreates the resources each time. If the emulator restarts, restart `make dev` too.
-
-`make test-aws` checks the whole path: it publishes to SNS and waits for the consumer to store the event.
-
-## Load test
-
-`make load` runs [`test/load/api.js`](../test/load/api.js) with k6 in a container, against an API started with `make dev` or `make up`. It holds 20 virtual users for 30 seconds: 40% portfolio, 30% search and 30% a market buy followed by a sell.
-
-| Threshold                   | Limit        |
-| --------------------------- | ------------ |
-| Failed requests             | below 1%     |
-| p95 of portfolio and search | below 300 ms |
-| p95 of order submission     | below 500 ms |
-
-Change the load with `make load VUS=50 DURATION=2m`. The test writes thousands of orders; `make down` and `make services` restore the seed.
-
-### What a run looks like
-
-One local run on 13 November 2026. It shows what to expect, not a benchmark.
-
-| Measure               | Value                                                         |
-| --------------------- | ------------------------------------------------------------- |
-| Peak request rate     | About 1,000 requests per second, no errors                    |
-| p95 latency per route | `POST /orders` 70.6 ms, portfolio 29.1 ms, search 9.58 ms     |
-| Order events          | All processed. The backlog peaked near 1,000 and drained to 0 |
-
-![Grafana summary and orders panels during the load test](images/load-test-summary-orders.png)
-
-![Grafana HTTP panels during the load test](images/load-test-http.png)
-
-![Grafana order events and runtime panels during the load test](images/load-test-events-runtime.png)
-
-## Metrics
-
-| Tool       | URL                                         |
-| ---------- | ------------------------------------------- |
-| Grafana    | http://localhost:3001/d/cocos-api/cocos-api |
-| Explore    | http://localhost:3001/explore               |
-| Prometheus | http://localhost:9090                       |
-
-The dashboard, the datasource and the scrape configuration are under `docker/grafana/` and `docker/prometheus/`.
+SNS and SQS run on AWS Emulator. It keeps its state in memory and creates new credentials on every start, so restart `make dev` whenever the emulator restarts. `make test-aws` checks the whole path: it publishes to SNS and waits for the consumer to store the event.
 
 ## Git hooks
 
@@ -122,4 +87,3 @@ The dashboard, the datasource and the scrape configuration are under `docker/gra
 | `/health` returns 503                                  | PostgreSQL is not reachable. Check `DATABASE_URL`                                                 |
 | Events stop after the emulator restarted               | Restart `make dev`: the emulator wrote new credentials                                            |
 | Events fail after mixing `make services` and `make up` | `make down`, then start one mode                                                                  |
-| Grafana panels are empty                               | The API must be up on port 3000. Check http://localhost:9090/targets                              |

@@ -11,13 +11,11 @@ sequenceDiagram
   autonumber
   participant C as Client
   participant UC as SubmitOrder
-  participant VK as Valkey
   participant PG as PostgreSQL
   participant SNS as SNS
   C->>UC: POST /orders (Idempotency-Key)
   Note over UC: validate, 400 stores nothing
-  UC->>VK: latest close (MARKET only)
-  UC->>PG: latest close on a cache miss
+  Note over UC: latest close, cached (MARKET only)
   UC->>PG: BEGIN, lock user row
   UC->>PG: order with this key already stored?
   alt key already used
@@ -91,12 +89,10 @@ sequenceDiagram
   participant C as Client
   participant UC as GetPortfolio
   participant PG as PostgreSQL
-  participant VK as Valkey
   C->>UC: GET /users/:userId/portfolio
   UC->>PG: user, cash balance, reserved cash, holdings
   UC-->>C: 404 if the user does not exist
-  UC->>VK: latest quote per instrument (TTL 60 s)
-  UC->>PG: quotes missing from the cache
+  Note over UC: latest quote per instrument, cached
   Note over UC: value each position
   UC-->>C: 200 portfolio
 ```
@@ -124,20 +120,13 @@ sequenceDiagram
   autonumber
   participant C as Client
   participant UC as SearchInstruments
-  participant VK as Valkey
   participant PG as PostgreSQL
   C->>UC: GET /instruments?q=
-  UC->>VK: search:q:limit:offset
-  alt cache hit
-    VK-->>UC: cached response
-  else miss or Valkey down
-    UC->>PG: match on ticker and name
-    UC->>VK: store for 5 minutes
-  end
+  UC->>PG: match on ticker and name
   UC-->>C: 200 items, limit, offset, total
 ```
 
-The match is partial and ignores case and accents. Exact ticker matches come first, then ticker prefixes, then the rest.
+The match is partial and ignores case and accents. Exact ticker matches come first, then ticker prefixes, then the rest. Responses are cached for 5 minutes.
 
 ## Event consumer
 
@@ -150,7 +139,7 @@ sequenceDiagram
   participant L as Consumer loop
   participant PG as analytics.order_events
   loop while running
-    L->>Q: ReceiveMessage (long polling, up to 10)
+    L->>Q: ReceiveMessage
     Q-->>L: messages
     L->>PG: INSERT ... ON CONFLICT (event_id) DO NOTHING
     alt stored or already present
@@ -161,4 +150,4 @@ sequenceDiagram
   end
 ```
 
-A message that fails 5 receives moves to `order-events-dlq`. A receive error is logged and retried after 5 seconds: the loop never stops the API.
+A message that keeps failing ends in a dead-letter queue. A consumer error is logged and retried: the loop never stops the API.
