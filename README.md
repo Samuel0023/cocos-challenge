@@ -11,6 +11,8 @@ Every order that is stored or cancelled is also published as an event.
 
 It is built with Node.js, Express 5 and TypeScript, follows a hexagonal architecture, and uses the PostgreSQL schema the challenge provided.
 
+The database runs locally in Docker, loaded from the challenge's schema and seed file. It does not connect to the hosted database the challenge offers; [docs/decisions.md](docs/decisions.md#local-database-instead-of-the-hosted-one) explains why.
+
 ## Run it
 
 You need:
