@@ -1,42 +1,20 @@
 # API
 
-This document describes each endpoint: request, response and status codes. Examples come from the behaviour checked by the tests, on the challenge seed. Ids of new orders and dates change from run to run. `requests.http` has a ready-to-run request for each case.
+Requests, responses and status codes. With the API running, the same contract is interactive at http://localhost:3000/docs (Swagger UI) and raw at http://localhost:3000/openapi.yaml. `requests.http` has one ready request per case.
 
-Conventions:
+| Method and path                      | What it does                                |
+| ------------------------------------ | ------------------------------------------- |
+| `GET /users/:userId/portfolio`       | Account value, available cash and positions |
+| `GET /instruments?q=&limit=&offset=` | Searches instruments by ticker or name      |
+| `POST /orders`                       | Submits an order or a cash transfer         |
+| `POST /orders/:orderId/cancel`       | Cancels an order in `NEW`                   |
+| `GET /health`                        | 200 when the database answers, 503 if not   |
+| `GET /metrics`                       | Prometheus metrics                          |
 
-- Bodies are JSON. Money is a decimal string with two decimals (`"925.85"`). Prices and amounts in requests accept a string or a number with up to two decimals.
-- Errors share one shape. `details` is present only on validation errors.
-
-```json
-{ "error": { "code": "BAD_REQUEST", "message": "Invalid request", "details": [] } }
-```
-
-| Code                   | Status |
-| ---------------------- | ------ |
-| `BAD_REQUEST`          | 400    |
-| `NOT_FOUND`            | 404    |
-| `CONFLICT`             | 409    |
-| `UNPROCESSABLE_ENTITY` | 422    |
-| `INTERNAL_ERROR`       | 500    |
-
-## OpenAPI and Swagger UI
-
-The machine-readable description of these endpoints is `src/platform/http/openapi/openapi.yaml` (OpenAPI 3.1). With the API running, Swagger UI is at http://localhost:3000/docs and the raw document at http://localhost:3000/openapi.yaml. `test/openapi/openapi.test.ts` checks that the document and the mounted routes match.
-
-## GET /health
-
-Checks the database connection.
-
-| Status | Body                          |
-| ------ | ----------------------------- |
-| 200    | `{ "status": "ok" }`          |
-| 503    | `{ "status": "unavailable" }` |
+- Bodies are JSON. Money is a decimal string with two decimals (`"925.85"`).
+- There is no authentication. See [known limitations](decisions.md#known-limitations).
 
 ## GET /users/:userId/portfolio
-
-Returns the account value, cash and open positions of a user. `userId` is a positive integer.
-
-Response 200 for user 1:
 
 ```json
 {
@@ -46,17 +24,6 @@ Response 200 for user 1:
   "cashBalance": "753000.00",
   "reservedCash": "125500.00",
   "positions": [
-    {
-      "instrumentId": 54,
-      "ticker": "METR",
-      "name": "MetroGAS S.A.",
-      "quantity": 500,
-      "averageCost": "250.00",
-      "lastPrice": "229.50",
-      "marketValue": "114750.00",
-      "totalReturnPct": "-8.20",
-      "dailyReturnPct": "-1.08"
-    },
     {
       "instrumentId": 47,
       "ticker": "PAMP",
@@ -72,25 +39,15 @@ Response 200 for user 1:
 }
 ```
 
-Users 2 to 4 have no orders: all amounts are `"0.00"` and `positions` is `[]`. Positions are sorted by ticker. A position without market data has `null` in `lastPrice`, `marketValue` and the returns.
-
-| Status | When                               |
-| ------ | ---------------------------------- |
-| 200    | The user exists                    |
-| 400    | `userId` is not a positive integer |
-| 404    | The user does not exist            |
+Positions are sorted by ticker. One without market data has `null` in `lastPrice`, `marketValue` and the returns.
 
 ## GET /instruments
-
-Searches instruments by ticker or name. The match is partial and ignores case and accents. Exact ticker matches come first.
 
 | Query param | Rule                 |
 | ----------- | -------------------- |
 | `q`         | Required, not empty  |
 | `limit`     | 1 to 100, default 20 |
 | `offset`    | 0 or more, default 0 |
-
-Request: `GET /instruments?q=pamp&limit=2`
 
 ```json
 {
@@ -103,34 +60,27 @@ Request: `GET /instruments?q=pamp&limit=2`
       "lastPrice": "925.85"
     }
   ],
-  "limit": 2,
+  "limit": 20,
   "offset": 0,
   "total": 1
 }
 ```
 
-`lastPrice` is `null` when the instrument has no market data (for example PGR). `total` counts all matches, not only the page.
-
-| Status | When                                                            |
-| ------ | --------------------------------------------------------------- |
-| 200    | Always, with an empty `items` when nothing matches              |
-| 400    | `q` is missing or empty, or `limit` or `offset` is out of range |
+`total` counts every match, not only the page. Nothing found is a 200 with empty `items`.
 
 ## POST /orders
 
-Submits an order or a cash transfer. The header `Idempotency-Key: <uuid>` is required.
+The header `Idempotency-Key: <uuid>` is required.
 
-| Field          | Type    | Rule                                                                                                                                                                                                        |
-| -------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `userId`       | integer | Required                                                                                                                                                                                                    |
-| `instrumentId` | integer | Required for `BUY` and `SELL`. Transfers use the ARS instrument when omitted                                                                                                                                |
-| `side`         | string  | `BUY`, `SELL`, `CASH_IN` or `CASH_OUT`                                                                                                                                                                      |
-| `type`         | string  | `MARKET` or `LIMIT`. Required for `BUY` and `SELL`. Transfers are always `MARKET`                                                                                                                           |
-| `size`         | number  | Whole shares (JSON integer). `BUY` and `SELL` only; a transfer with `size` is 400                                                                                                                           |
-| `amount`       | decimal | Pesos, up to 2 decimals. `BUY`/`SELL`: invests up to this much, size is the whole part of `amount / price`; send exactly one of `size` and `amount`. Transfers: required, it is the pesos moved, cents kept |
-| `price`        | decimal | Required for `LIMIT`. Not allowed for `MARKET` or transfers                                                                                                                                                 |
-
-Request:
+| Field          | Rule                                                                                                                 |
+| -------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `userId`       | Required                                                                                                             |
+| `side`         | `BUY`, `SELL`, `CASH_IN` or `CASH_OUT`                                                                               |
+| `instrumentId` | Required for `BUY` and `SELL`. Transfers use ARS                                                                     |
+| `type`         | `MARKET` or `LIMIT`, for `BUY` and `SELL`                                                                            |
+| `size`         | Whole shares. `BUY` and `SELL` only                                                                                  |
+| `amount`       | Pesos, up to two decimals. `BUY` and `SELL`: buys the shares that fit, instead of `size`. Transfers: the pesos moved |
+| `price`        | Required for `LIMIT`, not allowed otherwise                                                                          |
 
 ```http
 POST /orders
@@ -139,8 +89,6 @@ Content-Type: application/json
 
 { "userId": 1, "instrumentId": 47, "side": "BUY", "type": "MARKET", "size": 2 }
 ```
-
-Response 201:
 
 ```json
 {
@@ -156,46 +104,15 @@ Response 201:
 }
 ```
 
-In responses, `size` is a JSON integer for `BUY` and `SELL` and a decimal string with two places for `CASH_IN` and `CASH_OUT`. A transfer takes its pesos in `amount`, with up to two decimals (more is 400), and stores them in the `size` column with price 1. A transfer sent with `size` is 400, because `size` counts shares. A fractional share size is 400.
+A transfer sends only `amount`: `{ "userId": 2, "side": "CASH_IN", "amount": "2777.55" }`. Its response has `"size": "2777.55"` and `"price": "1.00"`.
 
-Limits follow the columns: a transfer `amount` goes up to 999999999999999999.99 (`size` is `numeric(20, 2)`); an `amount` or `price` of a `BUY` or `SELL` goes up to 99999999.99 (`price` is `numeric(10, 2)`).
+An order without enough cash or shares is not an error: it answers 201 with `"status": "REJECTED"`, because it was stored.
 
-Transfer with cents:
+## POST /orders/:orderId/cancel
 
-```http
-POST /orders
-Idempotency-Key: 0d4b8c52-3a1e-4f7a-9c2b-6e5d4a3b2c1f
-Content-Type: application/json
+No body. Answers 200 with the order in `"status": "CANCELLED"`, or 409 when the order is not `NEW`.
 
-{ "userId": 2, "side": "CASH_IN", "amount": "2777.55" }
-```
-
-Response 201:
-
-```json
-{
-  "id": 1235,
-  "userId": 2,
-  "instrumentId": 66,
-  "side": "CASH_IN",
-  "type": "MARKET",
-  "status": "FILLED",
-  "size": "2777.55",
-  "price": "1.00",
-  "datetime": "2026-11-13T15:04:06.456Z"
-}
-```
-
-A `LIMIT` order with funds returns `"status": "NEW"`. An order without enough cash or shares returns 201 with `"status": "REJECTED"`. Repeating the same request with the same key returns the same order and stores nothing new. See [flows.md](flows.md) for the full steps.
-
-| Status | When                                                                                                                                                                      |
-| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 201    | The order was stored (any status), or it is a valid retry                                                                                                                 |
-| 400    | Invalid body (including a fractional share size or more than two decimals), missing or invalid `Idempotency-Key`, malformed JSON                                          |
-| 404    | Unknown user or instrument                                                                                                                                                |
-| 422    | `BUY` or `SELL` on ARS, transfer on another instrument, `MARKET` without market data, `amount` below one unit, size above 2147483647, key reused with a different request |
-
-Example 422 body:
+## Errors
 
 ```json
 {
@@ -206,24 +123,14 @@ Example 422 body:
 }
 ```
 
-## POST /orders/:orderId/cancel
+| Status | Code                     | When                                                                                                                                      |
+| ------ | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| 400    | `BAD_REQUEST`            | Invalid body, query or path id; missing or non-UUID `Idempotency-Key`; fractional shares                                                  |
+| 404    | `NOT_FOUND`              | Unknown user, instrument, order or route                                                                                                  |
+| 409    | `CONFLICT`               | Cancelling an order that is not `NEW`                                                                                                     |
+| 413    | `PAYLOAD_TOO_LARGE`      | Body above 100 kB                                                                                                                         |
+| 415    | `UNSUPPORTED_MEDIA_TYPE` | Body in an encoding the API does not read                                                                                                 |
+| 422    | `UNPROCESSABLE_ENTITY`   | Valid request that cannot be an order: no market price, `amount` below one share, key reused with another request, `BUY` or `SELL` on ARS |
+| 500    | `INTERNAL_ERROR`         | Unhandled error                                                                                                                           |
 
-Cancels an order in `NEW`. No body and no idempotency key: cancelling twice returns 409 the second time.
-
-Response 200 is the order with `"status": "CANCELLED"`, in the same shape as above.
-
-| Status | When                                                  |
-| ------ | ----------------------------------------------------- |
-| 200    | The order was `NEW` and is now `CANCELLED`            |
-| 400    | `orderId` is not a whole number (`0` is 404)          |
-| 404    | The order does not exist                              |
-| 409    | The order is not `NEW` (the message names its status) |
-
-## GET /metrics
-
-Prometheus metrics in text format (`Content-Type: text/plain; version=0.0.4; charset=utf-8`). Responds 200. The metric list is in [architecture.md](architecture.md#metrics).
-
-```text
-orders_total{status="FILLED",side="BUY",type="MARKET"} 2
-http_request_duration_seconds_count{method="GET",route="/users/:userId/portfolio",status_code="200"} 1
-```
+Validation errors also carry `details` with the failing fields.

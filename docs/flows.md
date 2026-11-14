@@ -1,31 +1,26 @@
 # Flows
 
-This document lists the steps of each flow as the code runs them. The diagrams are on pages "Flow: submit order", "Flow: cancel order", "Flow: portfolio", "Flow: search instruments" and "Flow: event consumer" of `docs/diagrams/cocos-solution.drawio`.
+One diagram per flow, followed by the rules the diagram cannot show.
 
 ## Submit order
 
-`POST /orders`. Handled by `SubmitOrder`. Only step 7 can end in `REJECTED`.
+`POST /orders`, handled by `SubmitOrder`.
 
 ```mermaid
 sequenceDiagram
   autonumber
   participant C as Client
-  participant API as Express + idempotency middleware
   participant UC as SubmitOrder
   participant VK as Valkey
   participant PG as PostgreSQL
   participant SNS as SNS
-  C->>API: POST /orders (Idempotency-Key)
-  API-->>C: 400 if the key is missing or not a UUID
-  API->>UC: validated command
+  C->>UC: POST /orders (Idempotency-Key)
+  Note over UC: validate, 400 stores nothing
   UC->>VK: latest close (MARKET only)
-  VK-->>UC: hit, or miss
-  UC->>PG: latest close on a miss
-  Note over UC: resolve price and size, 4xx stores nothing
-  UC->>PG: BEGIN, SELECT user FOR UPDATE
+  UC->>PG: latest close on a cache miss
+  UC->>PG: BEGIN, lock user row
   UC->>PG: order with this key already stored?
   alt key already used
-    PG-->>UC: stored order
     UC-->>C: 201 stored order, or 422 if the request differs
   else new order
     UC->>PG: available cash or shares
@@ -36,32 +31,33 @@ sequenceDiagram
   end
 ```
 
-1. Check the `Idempotency-Key` header. It must be a UUID. Otherwise respond 400.
-2. Validate the body with Zod (shape, ranges, exactly one of `size` or `amount`, `price` rules). Otherwise respond 400.
-3. Resolve the instrument. `CASH_IN` and `CASH_OUT` default to the ARS instrument. Unknown instrument: 404. `BUY` or `SELL` on ARS, or a transfer on another instrument: 422.
-4. Resolve the price. `MARKET` uses the latest `close` (cache first, then PostgreSQL); no market data gives 422. `LIMIT` uses the price sent. Transfers use 1.
-5. Resolve the size. `size` is used as sent. For `BUY` and `SELL` it is whole shares; with `amount`, size is the whole part of `amount / price`, zero gives 422 and above 2147483647 gives 422. For transfers, size is the pesos sent in `amount`, cents included (price 1); a transfer sent with `size` is 400.
-6. Open a transaction and lock the user row with `SELECT ... FOR UPDATE` (`READ COMMITTED`). Unknown user: 404.
-7. Look up the idempotency key for this user. If an order exists, compare it with the request: same request returns the stored order (201), different request gives 422. No further steps run.
-8. Check funds or holdings. `BUY` and `CASH_OUT`: `size × price` must not exceed available cash, compared exactly in cents. `SELL`: `size` must not exceed available shares. `CASH_IN` always passes. Available values already subtract the reservations of `NEW` `LIMIT` orders.
-9. Insert the order with its final status and the key in `clientorderid`, then commit.
-10. Count the order in `orders_total` and publish `order.created` after the commit. A failure of either is logged and the response is still 201. A replay from step 7 is neither counted nor published.
-11. Respond 201 with the order.
+| Order                | Funds or shares | Stored status |
+| -------------------- | --------------- | ------------- |
+| `MARKET`, `CASH_OUT` | Enough          | `FILLED`      |
+| `LIMIT`              | Enough          | `NEW`         |
+| Any of the above     | Not enough      | `REJECTED`    |
+| `CASH_IN`            | Not checked     | `FILLED`      |
 
-| Type       | Funds or holdings check | Stored status          |
-| ---------- | ----------------------- | ---------------------- |
-| `MARKET`   | Passes                  | `FILLED`               |
-| `MARKET`   | Fails                   | `REJECTED`             |
-| `LIMIT`    | Passes                  | `NEW`                  |
-| `LIMIT`    | Fails                   | `REJECTED`             |
-| `CASH_IN`  | Not applicable          | `FILLED`               |
-| `CASH_OUT` | Passes or fails         | `FILLED` or `REJECTED` |
+- **Price.** `MARKET` uses the latest `close`, `LIMIT` the price sent, transfers 1.
+- **Size.** Sent as whole shares, or derived from `amount` as the whole part of `amount / price`. For a transfer, `amount` is the pesos moved, cents included.
+- **Funds.** `size × price` is compared with the available cash in exact cents. Available cash and shares already subtract what `NEW` `LIMIT` orders reserve.
+- **Retry.** The same key with the same request returns the stored order. It is not counted or published again.
 
-A retry of a `MARKET` order is matched by user, instrument, side and type. Its size (when sent as `amount`) and price are not compared, because they depend on a price that may have moved. A `LIMIT` order, a transfer or an order sent with `size` also compares size (for a transfer, its `amount` with cents), and a `LIMIT` compares price.
+## Statuses
+
+```mermaid
+stateDiagram-v2
+  [*] --> FILLED: MARKET or transfer with funds
+  [*] --> NEW: LIMIT with funds
+  [*] --> REJECTED: missing cash or shares
+  NEW --> CANCELLED: POST /orders/:orderId/cancel
+```
+
+`NEW` orders are never executed: there is no market simulation.
 
 ## Cancel order
 
-`POST /orders/:orderId/cancel`. Handled by `CancelOrder`.
+`POST /orders/:orderId/cancel`, handled by `CancelOrder`.
 
 ```mermaid
 sequenceDiagram
@@ -73,8 +69,7 @@ sequenceDiagram
   C->>UC: POST /orders/:orderId/cancel
   UC->>PG: find the order and its user
   UC-->>C: 404 if it does not exist
-  UC->>PG: BEGIN, SELECT user FOR UPDATE
-  UC->>PG: re-read the order
+  UC->>PG: BEGIN, lock user row, re-read the order
   alt status is NEW
     UC->>PG: UPDATE status = CANCELLED, COMMIT
     UC->>SNS: order.cancelled
@@ -84,17 +79,11 @@ sequenceDiagram
   end
 ```
 
-1. Check that `orderId` is a positive integer. Otherwise respond 400. An id beyond the `integer` range gives 404.
-2. Read the order to find its owner. Not found: 404.
-3. Open a transaction and lock the owner's user row.
-4. Read the order again under the lock. If its status is not `NEW`, respond 409.
-5. Set the status to `CANCELLED` and commit. The reservation is released because it is derived from `NEW` orders.
-6. Count the order in `orders_total` as `CANCELLED` and publish `order.cancelled` after the commit. A failure is logged.
-7. Respond 200 with the order.
+The order is read again under the lock, so a cancel cannot race with another request of the same user. Cancelling releases the reservation, because reservations are derived from `NEW` orders.
 
 ## Portfolio
 
-`GET /users/:userId/portfolio`. Handled by `GetPortfolio`.
+`GET /users/:userId/portfolio`, handled by `GetPortfolio`.
 
 ```mermaid
 sequenceDiagram
@@ -106,41 +95,29 @@ sequenceDiagram
   C->>UC: GET /users/:userId/portfolio
   UC->>PG: user, cash balance, reserved cash, holdings
   UC-->>C: 404 if the user does not exist
-  Note over UC: drop positions with quantity <= 0
   UC->>VK: latest quote per instrument (TTL 60 s)
   UC->>PG: quotes missing from the cache
-  Note over UC: PositionValuation: market value, total and daily return
+  Note over UC: value each position
   UC-->>C: 200 portfolio
 ```
 
-1. Check that `userId` is a positive integer. Otherwise respond 400. An id beyond the `integer` range gives 404.
-2. Check the user exists. Otherwise respond 404.
-3. Read the cash balance and the reserved cash from `orders`, and the net holdings per instrument from `FILLED` orders.
-4. Drop holdings with quantity zero or below.
-5. Read the latest quote of each held instrument: Valkey first (TTL 60 seconds), then PostgreSQL for the misses.
-6. Value each position and the account. Positions are sorted by ticker.
-7. Respond 200. Order and balance data is always read from PostgreSQL.
+| Value               | Formula                                                     |
+| ------------------- | ----------------------------------------------------------- |
+| Cash balance        | `CASH_IN` + sells − `CASH_OUT` − buys, over `FILLED` orders |
+| Reserved cash       | `size × price` of `NEW` buy `LIMIT` orders                  |
+| Available cash      | Cash balance − reserved cash                                |
+| Quantity            | Buys − sells, over `FILLED` orders                          |
+| Average cost        | Cost of the buys / shares bought                            |
+| Market value        | Quantity × latest `close`                                   |
+| Total return (%)    | `(close − average cost) / average cost × 100`               |
+| Daily return (%)    | `(close − previousClose) / previousClose × 100`             |
+| Total account value | Cash balance + market value of the positions                |
 
-Formulas:
-
-| Value               | Formula                                                       | Orders counted  |
-| ------------------- | ------------------------------------------------------------- | --------------- |
-| Cash balance        | `CASH_IN` + sells − `CASH_OUT` − buys, each as `size × price` | `FILLED`        |
-| Reserved cash       | Sum of `size × price` of buy `LIMIT` orders                   | `NEW`           |
-| Available cash      | Cash balance − reserved cash                                  |                 |
-| Quantity            | Buys − sells, in `size`                                       | `FILLED`        |
-| Available shares    | Quantity − `size` of sell `LIMIT` orders                      | `FILLED`, `NEW` |
-| Average cost        | Sum of `size × price` of buys / sum of `size` of buys         | `FILLED`        |
-| Market value        | Quantity × latest `close`                                     |                 |
-| Total return (%)    | `(close − average cost) / average cost × 100`                 |                 |
-| Daily return (%)    | `(close − previousClose) / previousClose × 100`               |                 |
-| Total account value | Cash balance + sum of market values                           |                 |
-
-The total uses the full cash balance, not the available cash. Percentages and amounts have two decimals and are returned as strings.
+Positions with a quantity of zero or below are not listed. Balances and orders are always read from PostgreSQL; only quotes are cached.
 
 ## Search instruments
 
-`GET /instruments?q=&limit=&offset=`. Handled by `SearchInstruments`.
+`GET /instruments?q=&limit=&offset=`, handled by `SearchInstruments`.
 
 ```mermaid
 sequenceDiagram
@@ -154,92 +131,34 @@ sequenceDiagram
   alt cache hit
     VK-->>UC: cached response
   else miss or Valkey down
-    UC->>PG: unaccent + lower LIKE on ticker and name
+    UC->>PG: match on ticker and name
     UC->>VK: store for 5 minutes
   end
   UC-->>C: 200 items, limit, offset, total
 ```
 
-1. Validate the query: `q` is required and non-empty, `limit` is 1 to 100 (default 20), `offset` is 0 or more (default 0). Otherwise respond 400.
-2. Lowercase and trim `q`, then look up the key `search:{q}:{limit}:{offset}` in Valkey (TTL 5 minutes).
-3. On a miss, query PostgreSQL. The match is partial on ticker or name, ignoring case and accents. Exact ticker matches come first, then ticker prefix matches, then the rest by ticker. Each item carries the latest `close`.
-4. Store the result in the cache and respond 200 with `items`, `limit`, `offset` and `total`.
+The match is partial and ignores case and accents. Exact ticker matches come first, then ticker prefixes, then the rest.
 
 ## Event consumer
 
-`SqsOrderEventConsumer`, started by `main.ts` when `AWS_ENABLED=true` and `CONSUMER_ENABLED=true`.
+`OrderEventConsumer`, started when `AWS_ENABLED=true` and `CONSUMER_ENABLED=true`.
 
 ```mermaid
 sequenceDiagram
   autonumber
   participant Q as SQS order-events-queue
   participant L as Consumer loop
-  participant UC as RecordOrderEvent
   participant PG as analytics.order_events
-  loop while CONSUMER_ENABLED
+  loop while running
     L->>Q: ReceiveMessage (long polling, up to 10)
     Q-->>L: messages
-    L->>UC: message body
-    UC->>PG: INSERT ... ON CONFLICT (event_id) DO NOTHING
+    L->>PG: INSERT ... ON CONFLICT (event_id) DO NOTHING
     alt stored or already present
       L->>Q: DeleteMessage
     else failure
-      Note over L,Q: not deleted, SQS redelivers after the visibility timeout
+      Note over L,Q: not deleted, SQS redelivers it
     end
   end
 ```
 
-1. Read the queue backlog (`ApproximateNumberOfMessages`) into `order_events_queue_backlog`. A failure is logged and ignored.
-2. Long-poll `order-events-queue` (20 seconds, up to 10 messages). A receive error is logged and the loop waits 5 seconds.
-3. For each message, unwrap the SNS envelope if present and validate the event with Zod.
-4. Insert it into `analytics.order_events` with `ON CONFLICT (event_id) DO NOTHING`.
-5. Delete the message from the queue and count it in `order_events_processed_total`.
-6. If step 3, 4 or 5 fails, count it in `order_events_failed_total` and do not delete it. SQS redelivers it after the 30-second visibility timeout; after 5 receives it moves to `order-events-dlq`. The unique `event_id` makes redelivery harmless.
-
-Each message's time from step 3 to 5 or 6 goes to `order_event_processing_duration_seconds`.
-
-## Statuses
-
-| Status      | Meaning                                                  | How it is reached                                       |
-| ----------- | -------------------------------------------------------- | ------------------------------------------------------- |
-| `NEW`       | `LIMIT` order accepted, waiting. Reserves cash or shares | `LIMIT` order that passes the funds check               |
-| `FILLED`    | Executed. Counts for balances and positions              | Accepted `MARKET` order, `CASH_IN`, accepted `CASH_OUT` |
-| `REJECTED`  | Stored, not executed                                     | Missing cash or shares only                             |
-| `CANCELLED` | Cancelled by the client                                  | `POST /orders/:orderId/cancel` on a `NEW` order         |
-
-```mermaid
-stateDiagram-v2
-  [*] --> FILLED: MARKET or transfer with funds
-  [*] --> NEW: LIMIT with funds
-  [*] --> REJECTED: missing cash or shares
-  NEW --> CANCELLED: POST /orders/:orderId/cancel
-  FILLED --> [*]
-  REJECTED --> [*]
-  CANCELLED --> [*]
-```
-
-`LIMIT` orders in `NEW` are never executed. There is no market simulation.
-
-## Errors
-
-Error body: `{ "error": { "code", "message", "details"? } }`. Codes are `BAD_REQUEST`, `NOT_FOUND`, `CONFLICT`, `UNPROCESSABLE_ENTITY` and `INTERNAL_ERROR`.
-
-| Case                                                             | Status |
-| ---------------------------------------------------------------- | ------ |
-| Missing fields, wrong types, `size` or `amount` of zero or below | 400    |
-| `size` and `amount` together, or neither                         | 400    |
-| Fractional share size, or more than two decimals                 | 400    |
-| `LIMIT` without `price`, or `MARKET` with `price`                | 400    |
-| Missing or non-UUID `Idempotency-Key`                            | 400    |
-| Malformed JSON body                                              | 400    |
-| Non-numeric `orderId` or `userId`, or missing `q`                | 400    |
-| Unknown user, instrument, order or route                         | 404    |
-| `BUY` or `SELL` on ARS, or a transfer on another instrument      | 422    |
-| `MARKET` on an instrument without market data                    | 422    |
-| `amount` that does not cover one unit                            | 422    |
-| `Idempotency-Key` reused with a different request                | 422    |
-| Cancel an order that is not `NEW`                                | 409    |
-| Unhandled error                                                  | 500    |
-| Database unreachable on `GET /health`                            | 503    |
-
-An order rejected for missing cash or shares is not an error. It returns 201 with `status: "REJECTED"` because the order was stored.
+A message that fails 5 receives moves to `order-events-dlq`. A receive error is logged and retried after 5 seconds: the loop never stops the API.

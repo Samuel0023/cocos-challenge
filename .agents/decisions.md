@@ -1,6 +1,6 @@
 # Decisions
 
-Reference for agents. The full table with rationale is in [docs/decisions.md](../docs/decisions.md). Do not reverse these without asking.
+Reference for agents. The key ones, with rationale, are in [docs/decisions.md](../docs/decisions.md). Do not reverse these without asking.
 
 | Topic            | Rule                                                                                                              |
 | ---------------- | ----------------------------------------------------------------------------------------------------------------- |
@@ -20,4 +20,4 @@ Reference for agents. The full table with rationale is in [docs/decisions.md](..
 | Secrets          | Environment variables only (D-15)                                                                                 |
 | Tooling          | ESLint recommended, typescript-eslint, Prettier, `strict` (D-24)                                                  |
 
-Known limitations: no outbox for events, average cost ignores realised gains, `LIMIT` orders never execute, and an idempotent retry of a `MARKET` order by amount is matched by user, instrument, side and type.
+Known limitations: no authentication or ownership check, no outbox for events, average cost ignores realised gains, `LIMIT` orders never execute, and an idempotent retry of a `MARKET` order by amount is matched by user, instrument, side and type.

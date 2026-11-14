@@ -2,14 +2,14 @@
 
 Reference for agents. Full examples: [docs/api.md](../docs/api.md). Runnable requests: `requests.http`.
 
-| Endpoint                             | Success | Errors        |
-| ------------------------------------ | ------- | ------------- |
-| `GET /health`                        | 200     | 503           |
-| `GET /users/:userId/portfolio`       | 200     | 400, 404      |
-| `GET /instruments?q=&limit=&offset=` | 200     | 400           |
-| `POST /orders`                       | 201     | 400, 404, 422 |
-| `POST /orders/:orderId/cancel`       | 200     | 400, 404, 409 |
-| `GET /metrics`                       | 200     | none          |
+| Endpoint                             | Success | Errors                  |
+| ------------------------------------ | ------- | ----------------------- |
+| `GET /health`                        | 200     | 503                     |
+| `GET /users/:userId/portfolio`       | 200     | 400, 404                |
+| `GET /instruments?q=&limit=&offset=` | 200     | 400                     |
+| `POST /orders`                       | 201     | 400, 404, 413, 415, 422 |
+| `POST /orders/:orderId/cancel`       | 200     | 400, 404, 409           |
+| `GET /metrics`                       | 200     | none                    |
 
 ## Rules
 
@@ -18,7 +18,9 @@ Reference for agents. Full examples: [docs/api.md](../docs/api.md). Runnable req
 - A stored order always returns 201, including `REJECTED` (missing cash or shares).
 - Money in responses is a string with two decimals. Ids are numbers. Order `size` is an integer for `BUY`/`SELL` and a two-decimal string for `CASH_IN`/`CASH_OUT`.
 - A transfer takes pesos in `amount` only, with cents (up to two decimals); `size` on a transfer is 400. Share `size` must be a JSON integer; a fraction is 400.
-- Error body: `{ "error": { "code", "message", "details"? } }`.
+- Error body: `{ "error": { "code", "message", "details"? } }`. Codes and statuses: `BAD_REQUEST` 400, `NOT_FOUND` 404, `CONFLICT` 409, `PAYLOAD_TOO_LARGE` 413, `UNSUPPORTED_MEDIA_TYPE` 415, `UNPROCESSABLE_ENTITY` 422, `INTERNAL_ERROR` 500. The mapping lives only in `src/platform/http/error-middleware.ts`; a new code is added there, in `src/platform/errors.ts` and in the `Error` schema of `openapi.yaml`.
+- A share `size` above 2147483647 is 400. An `amount` that buys more shares than that is 422.
+- No endpoint is authenticated.
 - Search `limit` is 1 to 100 (default 20).
 - `GET /metrics` is Prometheus text. Metric names and labels are a contract for the Grafana dashboard: renaming one means updating `docker/grafana/dashboards/cocos-api.json`.
 - Changing a status code, field name or required header is a breaking change. Update `docs/api.md`, `requests.http`, `src/platform/http/openapi/openapi.yaml` and the tests together.

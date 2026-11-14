@@ -48,7 +48,7 @@ Dashboard: http://localhost:3001/d/cocos-api/cocos-api. Prometheus: http://local
 ## Test and lint
 
 ```sh
-make test       # needs a running Docker daemon
+make test       # needs a running Docker daemon; starts its own PostgreSQL, so make services is not required
 make test-aws   # SNS to SQS through AWS Emulator, after make services
 make lint
 make typecheck

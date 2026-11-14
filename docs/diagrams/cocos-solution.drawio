@@ -29,8 +29,8 @@
         <mxCell id="aws-sns" value="Amazon SNS&lt;br&gt;topic order-events" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
           <mxGeometry x="1160" y="420" width="300" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="aws-sqs" value="Amazon SQS&lt;br&gt;queue order-events-queue" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
-          <mxGeometry x="1580" y="420" width="240" height="60" as="geometry" />
+        <mxCell id="aws-sqs" value="Amazon SQS&lt;br&gt;queue order-events-queue&lt;br&gt;dead-letter queue order-events-dlq" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="1580" y="400" width="280" height="100" as="geometry" />
         </mxCell>
         <mxCell id="aws-secrets" value="AWS Secrets Manager&lt;br&gt;database credential" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
           <mxGeometry x="200" y="520" width="240" height="80" as="geometry" />
@@ -44,10 +44,10 @@
         <mxCell id="aws-grafana" value="Grafana" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="1">
           <mxGeometry x="680" y="920" width="200" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="aws-obsnote" value="Observability: a requirement added by the candidate, not by Cocos." style="shape=note;whiteSpace=wrap;html=1;size=14;align=left;spacingLeft=8;spacingRight=8;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="1">
+        <mxCell id="aws-obsnote" value="Observability: added by the candidate, not required by the challenge." style="shape=note;whiteSpace=wrap;html=1;size=14;align=left;spacingLeft=8;spacingRight=8;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="1">
           <mxGeometry x="960" y="800" width="260" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="aws-awsnote" value="Reference deployment: not part of the deliverable. Locally, AWS_ENABLED=false writes events to the log instead of SNS." style="shape=note;whiteSpace=wrap;html=1;size=14;align=left;spacingLeft=8;spacingRight=8;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="1">
+        <mxCell id="aws-awsnote" value="Reference deployment: not part of the deliverable. Locally, the same topic and queues run on AWS Emulator." style="shape=note;whiteSpace=wrap;html=1;size=14;align=left;spacingLeft=8;spacingRight=8;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="1">
           <mxGeometry x="40" y="800" width="440" height="80" as="geometry" />
         </mxCell>
         <mxCell id="aws-legend" value="Legend" style="swimlane;whiteSpace=wrap;html=1;startSize=30;container=1;collapsible=0;rounded=0;fontStyle=1;fillColor=none;strokeColor=#666666;" vertex="1" parent="1">
@@ -83,7 +83,7 @@
         <mxCell id="aws-lg8" value="Out of scope" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;dashed=1;" vertex="1" parent="aws-legend">
           <mxGeometry x="20" y="360" width="260" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="aws-api" value="API HTTP (Express)&lt;br&gt;GET /users/:userId/portfolio&lt;br&gt;GET /instruments&lt;br&gt;POST /orders&lt;br&gt;POST /orders/:orderId/cancel&lt;br&gt;GET /metrics" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" vertex="1" parent="aws-proc">
+        <mxCell id="aws-api" value="API HTTP (Express)&lt;br&gt;GET /users/:userId/portfolio&lt;br&gt;GET /instruments&lt;br&gt;POST /orders&lt;br&gt;POST /orders/:orderId/cancel&lt;br&gt;GET /health · GET /metrics · GET /docs" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" vertex="1" parent="aws-proc">
           <mxGeometry x="20" y="40" width="280" height="300" as="geometry" />
         </mxCell>
         <mxCell id="aws-consumer" value="Event consumer&lt;br&gt;SQS long-polling loop&lt;br&gt;enabled with CONSUMER_ENABLED" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#ffcce6;strokeColor=#cc0066;" vertex="1" parent="aws-proc">
@@ -110,12 +110,12 @@
         <mxCell id="aws-e7" value="ReceiveMessage (long polling) and DeleteMessage" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=1;exitY=0.75;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="aws-consumer" target="aws-sqs">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="1700" y="590" />
+              <mxPoint x="1720" y="590" />
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="aws-e8" value="INSERT into analytics.order_events" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=1;exitY=0.25;exitDx=0;exitDy=0;entryX=0;entryY=0.75;entryDx=0;entryDy=0;" edge="1" parent="1" source="aws-consumer" target="aws-rds">
-          <mxGeometry relative="1" as="geometry">
+        <mxCell id="aws-e8" value="INSERT into&lt;br&gt;analytics.order_events" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=1;exitY=0.25;exitDx=0;exitDy=0;entryX=0;entryY=0.75;entryDx=0;entryDy=0;" edge="1" parent="1" source="aws-consumer" target="aws-rds">
+          <mxGeometry relative="1" as="geometry" x="0.45">
             <Array as="points">
               <mxPoint x="1060" y="550" />
               <mxPoint x="1060" y="265" />
@@ -146,7 +146,7 @@
           <mxGeometry x="40" y="60" width="1400" height="30" as="geometry" />
         </mxCell>
         <mxCell id="hex-outer" value="API cocos-api" style="swimlane;whiteSpace=wrap;html=1;startSize=30;container=1;collapsible=0;rounded=0;fontStyle=1;fillColor=none;strokeColor=#666666;" vertex="1" parent="1">
-          <mxGeometry x="340" y="110" width="1720" height="1240" as="geometry" />
+          <mxGeometry x="340" y="110" width="1720" height="1360" as="geometry" />
         </mxCell>
         <mxCell id="hex-x_pg" value="PostgreSQL&lt;br&gt;public and analytics schemas" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
           <mxGeometry x="2160" y="210" width="220" height="240" as="geometry" />
@@ -163,20 +163,20 @@
         <mxCell id="hex-x_sqs" value="Amazon SQS&lt;br&gt;queue order-events-queue" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
           <mxGeometry x="40" y="550" width="220" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="hex-folders" value="Code in two groups: src/modules holds the features (orders, portfolio, instruments, marketdata, order-events); src/platform holds the technical pieces" style="shape=note;whiteSpace=wrap;html=1;size=14;align=left;spacingLeft=8;spacingRight=8;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="1">
-          <mxGeometry x="40" y="1410" width="420" height="80" as="geometry" />
+        <mxCell id="hex-folders" value="Code in two groups: src/modules holds the features (orders, portfolio, instruments, marketdata, order-events); src/platform holds the technical pieces. platform never imports from modules." style="shape=note;whiteSpace=wrap;html=1;size=14;align=left;spacingLeft=8;spacingRight=8;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1530" width="420" height="100" as="geometry" />
         </mxCell>
         <mxCell id="hex-credsnote" value="The database credential is always read from environment variables: there is no secrets port." style="shape=note;whiteSpace=wrap;html=1;size=14;align=left;spacingLeft=8;spacingRight=8;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="1">
-          <mxGeometry x="500" y="1410" width="400" height="80" as="geometry" />
+          <mxGeometry x="500" y="1530" width="400" height="80" as="geometry" />
         </mxCell>
         <mxCell id="hex-legend" value="Legend" style="swimlane;whiteSpace=wrap;html=1;startSize=30;container=1;collapsible=0;rounded=0;fontStyle=1;fillColor=none;strokeColor=#666666;" vertex="1" parent="1">
-          <mxGeometry x="960" y="1410" width="300" height="420" as="geometry" />
+          <mxGeometry x="960" y="1530" width="300" height="420" as="geometry" />
         </mxCell>
         <mxCell id="hex-in" value="Inbound adapters" style="swimlane;whiteSpace=wrap;html=1;startSize=30;container=1;collapsible=0;rounded=0;fontStyle=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="hex-outer">
           <mxGeometry x="30" y="50" width="300" height="500" as="geometry" />
         </mxCell>
         <mxCell id="hex-core" value="Application core" style="swimlane;whiteSpace=wrap;html=1;startSize=30;container=1;collapsible=0;rounded=0;fontStyle=1;fillColor=none;strokeColor=#666666;" vertex="1" parent="hex-outer">
-          <mxGeometry x="370" y="50" width="820" height="1160" as="geometry" />
+          <mxGeometry x="370" y="50" width="820" height="1280" as="geometry" />
         </mxCell>
         <mxCell id="hex-out" value="Outbound adapters" style="swimlane;whiteSpace=wrap;html=1;startSize=30;container=1;collapsible=0;rounded=0;fontStyle=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="hex-outer">
           <mxGeometry x="1310" y="50" width="380" height="880" as="geometry" />
@@ -220,19 +220,19 @@
         <mxCell id="hex-in4" value="Error middleware" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="hex-in">
           <mxGeometry x="20" y="310" width="260" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="hex-in5" value="SQS event consumer&lt;br&gt;long-polling loop, enabled with CONSUMER_ENABLED" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#ffcce6;strokeColor=#cc0066;" vertex="1" parent="hex-in">
+        <mxCell id="hex-in5" value="SqsOrderEventQueue&lt;br&gt;reads order-events-queue with long polling" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#ffcce6;strokeColor=#cc0066;" vertex="1" parent="hex-in">
           <mxGeometry x="20" y="390" width="260" height="80" as="geometry" />
         </mxCell>
         <mxCell id="hex-uc" value="Application (use cases)" style="swimlane;whiteSpace=wrap;html=1;startSize=30;container=1;collapsible=0;rounded=0;fontStyle=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="hex-core">
-          <mxGeometry x="30" y="50" width="320" height="440" as="geometry" />
+          <mxGeometry x="30" y="50" width="320" height="560" as="geometry" />
         </mxCell>
         <mxCell id="hex-dom" value="Domain" style="swimlane;whiteSpace=wrap;html=1;startSize=30;container=1;collapsible=0;rounded=0;fontStyle=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="hex-core">
-          <mxGeometry x="30" y="550" width="320" height="580" as="geometry" />
+          <mxGeometry x="30" y="670" width="320" height="580" as="geometry" />
         </mxCell>
         <mxCell id="hex-ports" value="Outbound ports (interfaces)" style="swimlane;whiteSpace=wrap;html=1;startSize=30;container=1;collapsible=0;rounded=0;fontStyle=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="hex-core">
-          <mxGeometry x="470" y="50" width="320" height="760" as="geometry" />
+          <mxGeometry x="470" y="50" width="320" height="920" as="geometry" />
         </mxCell>
-        <mxCell id="hex-o1" value="PostgreSQL adapter (pg)&lt;br&gt;implements OrderRepository, AccountReader, InstrumentRepository, MarketDataRepository and UnitOfWork" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="hex-out">
+        <mxCell id="hex-o1" value="PostgreSQL adapter (pg)&lt;br&gt;implements OrderRepository, FundsReader, PortfolioReader, the instrument repositories, MarketDataRepository and UnitOfWork" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="hex-out">
           <mxGeometry x="20" y="50" width="340" height="100" as="geometry" />
         </mxCell>
         <mxCell id="hex-o2" value="PgOrderEventStore&lt;br&gt;implements OrderEventStore: INSERT into analytics.order_events, unique key event_id, ON CONFLICT DO NOTHING" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="hex-out">
@@ -247,10 +247,10 @@
         <mxCell id="hex-o5" value="LogEventPublisher&lt;br&gt;implements EventPublisher (AWS_ENABLED=false)" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="hex-out">
           <mxGeometry x="20" y="570" width="340" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="hex-o6" value="SystemClock&lt;br&gt;implements Clock" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="hex-out">
+        <mxCell id="hex-o6" value="systemClock&lt;br&gt;implements Clock" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="hex-out">
           <mxGeometry x="20" y="670" width="340" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="hex-o7" value="PromMetrics (prom-client)&lt;br&gt;HTTP, order and consumer metrics, exposed at GET /metrics" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="hex-out">
+        <mxCell id="hex-o7" value="PrometheusMetrics (prom-client)&lt;br&gt;implements the metrics ports, exposed at GET /metrics" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="hex-out">
           <mxGeometry x="20" y="770" width="340" height="80" as="geometry" />
         </mxCell>
         <mxCell id="hex-uc1" value="GetPortfolio" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="hex-uc">
@@ -268,6 +268,9 @@
         <mxCell id="hex-uc5" value="RecordOrderEvent" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="hex-uc">
           <mxGeometry x="20" y="370" width="280" height="40" as="geometry" />
         </mxCell>
+        <mxCell id="hex-uc6" value="OrderEventConsumer&lt;br&gt;polling loop, enabled with CONSUMER_ENABLED" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="hex-uc">
+          <mxGeometry x="20" y="450" width="280" height="80" as="geometry" />
+        </mxCell>
         <mxCell id="hex-d1" value="Order&lt;br&gt;statuses NEW, FILLED, REJECTED, CANCELLED" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="hex-dom">
           <mxGeometry x="20" y="50" width="280" height="80" as="geometry" />
         </mxCell>
@@ -280,19 +283,19 @@
         <mxCell id="hex-d4" value="PositionValuation&lt;br&gt;quantity, average cost, market value, total and daily return" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="hex-dom">
           <mxGeometry x="20" y="370" width="280" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="hex-d5" value="Money&lt;br&gt;decimal" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="hex-dom">
+        <mxCell id="hex-d5" value="Money&lt;br&gt;integer cents, from src/platform" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="hex-dom">
           <mxGeometry x="20" y="490" width="280" height="60" as="geometry" />
         </mxCell>
         <mxCell id="hex-p0" value="OrderRepository" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="hex-ports">
           <mxGeometry x="20" y="50" width="280" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="hex-p1" value="AccountReader" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="hex-ports">
+        <mxCell id="hex-p1" value="FundsReader, PortfolioReader" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="hex-ports">
           <mxGeometry x="20" y="130" width="280" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="hex-p2" value="InstrumentRepository" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="hex-ports">
+        <mxCell id="hex-p2" value="Instrument repositories" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="hex-ports">
           <mxGeometry x="20" y="210" width="280" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="hex-p3" value="MarketDataRepository" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="hex-ports">
+        <mxCell id="hex-p3" value="MarketDataRepository, PriceSource" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="hex-ports">
           <mxGeometry x="20" y="290" width="280" height="40" as="geometry" />
         </mxCell>
         <mxCell id="hex-p4" value="UnitOfWork" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="hex-ports">
@@ -301,14 +304,20 @@
         <mxCell id="hex-p5" value="EventPublisher" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="hex-ports">
           <mxGeometry x="20" y="450" width="280" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="hex-p6" value="Cache" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="hex-ports">
+        <mxCell id="hex-p6" value="OrderEventQueue" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="hex-ports">
           <mxGeometry x="20" y="530" width="280" height="40" as="geometry" />
         </mxCell>
         <mxCell id="hex-p7" value="OrderEventStore" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="hex-ports">
           <mxGeometry x="20" y="610" width="280" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="hex-p8" value="Clock" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="hex-ports">
+        <mxCell id="hex-p8" value="Cache" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="hex-ports">
           <mxGeometry x="20" y="690" width="280" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="hex-p9" value="Clock" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="hex-ports">
+          <mxGeometry x="20" y="770" width="280" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="hex-p10" value="Metrics ports" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="hex-ports">
+          <mxGeometry x="20" y="850" width="280" height="40" as="geometry" />
         </mxCell>
         <mxCell id="hex-e1" value="SQL" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.2083;entryDx=0;entryDy=0;" edge="1" parent="1" source="hex-o1" target="hex-x_pg">
           <mxGeometry relative="1" as="geometry" />
@@ -361,12 +370,12 @@
           <mxGeometry x="1500" y="110" width="1380" height="780" as="geometry" />
         </mxCell>
         <mxCell id="local-cmds_band" value="Commands (Makefile)" style="swimlane;whiteSpace=wrap;html=1;startSize=30;container=1;collapsible=0;rounded=0;fontStyle=1;fillColor=none;strokeColor=#666666;" vertex="1" parent="1">
-          <mxGeometry x="40" y="950" width="900" height="220" as="geometry" />
+          <mxGeometry x="40" y="950" width="900" height="240" as="geometry" />
         </mxCell>
         <mxCell id="local-tests" value="Tests (Vitest + Supertest)" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="1">
           <mxGeometry x="1020" y="990" width="260" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="local-testpg" value="Disposable PostgreSQL (Testcontainers)&lt;br&gt;never the shared Neon database" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+        <mxCell id="local-testpg" value="Disposable PostgreSQL (Testcontainers)&lt;br&gt;created for each test run" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
           <mxGeometry x="1400" y="980" width="340" height="100" as="geometry" />
         </mxCell>
         <mxCell id="local-legend" value="Legend" style="swimlane;whiteSpace=wrap;html=1;startSize=30;container=1;collapsible=0;rounded=0;fontStyle=1;fillColor=none;strokeColor=#666666;" vertex="1" parent="1">
@@ -375,7 +384,7 @@
         <mxCell id="local-a_api" value="cocos-api API (Node.js on the host), port 3000&lt;br&gt;started with make dev&lt;br&gt;reads the database credential from environment variables" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" vertex="1" parent="local-laneA">
           <mxGeometry x="40" y="60" width="480" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="local-a_vol" value="Volume ~/.aws/emulator/9297&lt;br&gt;credentials and ca.pem, regenerated on every start" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="local-laneA">
+        <mxCell id="local-a_vol" value="Bind mount .aws-emulator/9297&lt;br&gt;credentials and ca.pem, regenerated on every start" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="local-laneA">
           <mxGeometry x="860" y="60" width="360" height="80" as="geometry" />
         </mxCell>
         <mxCell id="local-a_compose" value="Docker Compose (make services)" style="swimlane;whiteSpace=wrap;html=1;startSize=30;container=1;collapsible=0;rounded=0;fontStyle=1;fillColor=none;strokeColor=#666666;" vertex="1" parent="local-laneA">
@@ -384,14 +393,14 @@
         <mxCell id="local-b_dev" value="Developer / reviewer&lt;br&gt;(Postman or REST Client)" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="local-laneB">
           <mxGeometry x="480" y="60" width="260" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="local-b_vol" value="Volume ~/.aws/emulator/9297&lt;br&gt;credentials and ca.pem, regenerated on every start" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="local-laneB">
+        <mxCell id="local-b_vol" value="Bind mount .aws-emulator/9297&lt;br&gt;credentials and ca.pem, regenerated on every start" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="local-laneB">
           <mxGeometry x="780" y="60" width="360" height="80" as="geometry" />
         </mxCell>
         <mxCell id="local-b_compose" value="Docker Compose (make up)" style="swimlane;whiteSpace=wrap;html=1;startSize=30;container=1;collapsible=0;rounded=0;fontStyle=1;fillColor=none;strokeColor=#666666;" vertex="1" parent="local-laneB">
           <mxGeometry x="40" y="190" width="1300" height="540" as="geometry" />
         </mxCell>
-        <mxCell id="local-cmds" value="make services — Starts PostgreSQL, Valkey, AWS Emulator, aws-init, Prometheus and Grafana in Docker&lt;br&gt;make dev — Runs the API on the host with Node, against those services&lt;br&gt;make up — Starts everything in Docker, API included, with compose.aws.yaml&lt;br&gt;make test — Runs the unit and functional tests&lt;br&gt;make lint — Runs ESLint and the Prettier format check&lt;br&gt;make down — Stops the containers" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;;align=left;spacingLeft=10;fontFamily=Courier New;" vertex="1" parent="local-cmds_band">
-          <mxGeometry x="20" y="50" width="860" height="140" as="geometry" />
+        <mxCell id="local-cmds" value="make services — Starts PostgreSQL, Valkey, AWS Emulator, aws-init, Prometheus and Grafana in Docker&lt;br&gt;make dev — Runs the API on the host with Node, against those services&lt;br&gt;make up — Starts everything in Docker, API included, with compose.aws.yaml&lt;br&gt;make test — Runs the unit and functional tests&lt;br&gt;make test-aws — Runs the SNS to SQS test against AWS Emulator&lt;br&gt;make load — Runs the k6 load test against a running API&lt;br&gt;make lint — Runs ESLint and the Prettier format check&lt;br&gt;make down — Stops the containers" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;;align=left;spacingLeft=10;fontFamily=Courier New;" vertex="1" parent="local-cmds_band">
+          <mxGeometry x="20" y="50" width="860" height="160" as="geometry" />
         </mxCell>
         <mxCell id="local-lg0" value="API" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="local-legend">
           <mxGeometry x="20" y="40" width="340" height="30" as="geometry" />
@@ -408,7 +417,7 @@
         <mxCell id="local-lg4" value="External actors, volume, tests and metrics" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="local-legend">
           <mxGeometry x="20" y="200" width="340" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="local-a_pg" value="postgres&lt;br&gt;PostgreSQL 16, published on 127.0.0.1:5432&lt;br&gt;initialized with database.sql and migrations/001_constraints_indexes.sql" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="local-a_compose">
+        <mxCell id="local-a_pg" value="postgres&lt;br&gt;PostgreSQL 17, published on 127.0.0.1:5432&lt;br&gt;initialized with database.sql and migrations/001_constraints_and_analytics.sql" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="local-a_compose">
           <mxGeometry x="20" y="60" width="260" height="180" as="geometry" />
         </mxCell>
         <mxCell id="local-a_valkey" value="valkey&lt;br&gt;published on 127.0.0.1:6379&lt;br&gt;price and search cache" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#b0e3e6;strokeColor=#0e8088;" vertex="1" parent="local-a_compose">
@@ -417,19 +426,19 @@
         <mxCell id="local-a_emu" value="aws-emulator&lt;br&gt;AWS Emulator, image built from the Dockerfile in the AWS documentation&lt;br&gt;HTTPS with self-signed certificate&lt;br&gt;in-memory state&lt;br&gt;published on 127.0.0.1:9297" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="local-a_compose">
           <mxGeometry x="600" y="60" width="300" height="160" as="geometry" />
         </mxCell>
-        <mxCell id="local-a_init" value="aws-init&lt;br&gt;one-shot AWS CLI&lt;br&gt;creates the order-events topic, the order-events-queue queue and the subscription&lt;br&gt;network_mode: service:aws-emulator, calls https://127.0.0.1:9297" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="local-a_compose">
+        <mxCell id="local-a_init" value="aws-init&lt;br&gt;one-shot AWS CLI&lt;br&gt;creates the order-events topic, the order-events-queue queue, its dead-letter queue and the subscription&lt;br&gt;network_mode: service:aws-emulator, calls https://127.0.0.1:9297" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="local-a_compose">
           <mxGeometry x="1020" y="60" width="280" height="160" as="geometry" />
         </mxCell>
         <mxCell id="local-a_prom" value="prometheus&lt;br&gt;scrapes /metrics from the API" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="local-a_compose">
           <mxGeometry x="20" y="300" width="260" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="local-a_graf" value="grafana&lt;br&gt;provisioned datasource and dashboard&lt;br&gt;anonymous read-only access" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="local-a_compose">
+        <mxCell id="local-a_graf" value="grafana&lt;br&gt;provisioned datasource and dashboard&lt;br&gt;no login, Explore enabled" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="local-a_compose">
           <mxGeometry x="340" y="300" width="300" height="80" as="geometry" />
         </mxCell>
         <mxCell id="local-b_net" value="Shared network (network_mode: service:aws-emulator)" style="swimlane;whiteSpace=wrap;html=1;startSize=30;container=1;collapsible=0;rounded=0;fillColor=none;;;dashed=1;strokeColor=#d79b00;fontColor=#7a4d00;fontStyle=2;" vertex="1" parent="local-b_compose">
           <mxGeometry x="20" y="50" width="1260" height="260" as="geometry" />
         </mxCell>
-        <mxCell id="local-b_pg" value="postgres&lt;br&gt;PostgreSQL 16, same as in development mode" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="local-b_compose">
+        <mxCell id="local-b_pg" value="postgres&lt;br&gt;PostgreSQL 17, same as in development mode" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="local-b_compose">
           <mxGeometry x="20" y="390" width="200" height="120" as="geometry" />
         </mxCell>
         <mxCell id="local-b_valkey" value="valkey&lt;br&gt;port 6379&lt;br&gt;price and search cache" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#b0e3e6;strokeColor=#0e8088;" vertex="1" parent="local-b_compose">
@@ -438,7 +447,7 @@
         <mxCell id="local-b_prom" value="prometheus&lt;br&gt;scrapes /metrics from the API" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="local-b_compose">
           <mxGeometry x="440" y="390" width="200" height="120" as="geometry" />
         </mxCell>
-        <mxCell id="local-b_graf" value="grafana&lt;br&gt;provisioned datasource and dashboard&lt;br&gt;anonymous read-only access" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="local-b_compose">
+        <mxCell id="local-b_graf" value="grafana&lt;br&gt;provisioned datasource and dashboard&lt;br&gt;no login, Explore enabled" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="local-b_compose">
           <mxGeometry x="680" y="390" width="260" height="120" as="geometry" />
         </mxCell>
         <mxCell id="local-b_api" value="api&lt;br&gt;Node.js + Express&lt;br&gt;network_mode: service:aws-emulator&lt;br&gt;AWS_ENABLED=true&lt;br&gt;database credential from environment variables" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" vertex="1" parent="local-b_net">
@@ -447,7 +456,7 @@
         <mxCell id="local-b_emu" value="aws-emulator&lt;br&gt;AWS Emulator, image built from the Dockerfile in the AWS documentation&lt;br&gt;HTTPS with self-signed certificate&lt;br&gt;in-memory state&lt;br&gt;publishes 127.0.0.1:3000 (for the API) and 127.0.0.1:9297" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="local-b_net">
           <mxGeometry x="480" y="60" width="300" height="160" as="geometry" />
         </mxCell>
-        <mxCell id="local-b_init" value="aws-init&lt;br&gt;one-shot AWS CLI&lt;br&gt;creates the order-events topic, the order-events-queue queue and the subscription&lt;br&gt;network_mode: service:aws-emulator, calls https://127.0.0.1:9297" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="local-b_net">
+        <mxCell id="local-b_init" value="aws-init&lt;br&gt;one-shot AWS CLI&lt;br&gt;creates the order-events topic, the order-events-queue queue, its dead-letter queue and the subscription&lt;br&gt;network_mode: service:aws-emulator, calls https://127.0.0.1:9297" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="local-b_net">
           <mxGeometry x="960" y="60" width="280" height="160" as="geometry" />
         </mxCell>
         <mxCell id="local-e1" value="127.0.0.1:5432" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.3125;exitY=1;exitDx=0;exitDy=0;entryX=0.5000;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="local-a_api" target="local-a_pg">
@@ -494,7 +503,7 @@
         <mxCell id="local-e13" value="valkey:6379" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.8571;exitY=1;exitDx=0;exitDy=0;entryX=0.2500;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="local-b_api" target="local-b_valkey">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="local-e14" value="aws-emulator:3000" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.1;exitY=0;exitDx=0;exitDy=0;entryX=1;entryY=0.8;entryDx=0;entryDy=0;" edge="1" parent="1" source="local-b_prom" target="local-b_api">
+        <mxCell id="local-e14" value="host.docker.internal:3000" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.1;exitY=0;exitDx=0;exitDy=0;entryX=1;entryY=0.8;entryDx=0;entryDy=0;" edge="1" parent="1" source="local-b_prom" target="local-b_api">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="2000" y="538" />
@@ -535,7 +544,7 @@
         <mxCell id="submit-title" value="Flow: submit order (POST /orders)" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;fontSize=20;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="40" y="20" width="1400" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="submit-subtitle" value="Each color shows the component that runs the step. Earlier validations persist nothing; the funds decision and the insert happen in a single transaction." style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;fontSize=12;fontColor=#555555;" vertex="1" parent="1">
+        <mxCell id="submit-subtitle" value="Each color shows the component that runs the step. A 4xx stores nothing; the idempotency lookup, the funds decision and the insert happen in one transaction." style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;fontSize=12;fontColor=#555555;" vertex="1" parent="1">
           <mxGeometry x="40" y="60" width="1400" height="30" as="geometry" />
         </mxCell>
         <mxCell id="submit-start" value="&lt;i style=&quot;font-size:10px&quot;&gt;Express controller&lt;/i&gt;&lt;br&gt;Receive POST /orders" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fontStyle=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
@@ -547,9 +556,6 @@
         <mxCell id="submit-e400k" value="&lt;i style=&quot;font-size:10px&quot;&gt;Error middleware&lt;/i&gt;&lt;br&gt;400 Bad Request&lt;br&gt;does not reach the use case" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
           <mxGeometry x="920" y="260" width="260" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="submit-n_idem" value="Middleware mounted only on POST /orders. The key is stored in orders.clientorderid, in the same transaction as the order." style="shape=note;whiteSpace=wrap;html=1;size=14;align=left;spacingLeft=8;spacingRight=8;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="1">
-          <mxGeometry x="40" y="250" width="300" height="100" as="geometry" />
-        </mxCell>
         <mxCell id="submit-valid" value="&lt;i style=&quot;font-size:10px&quot;&gt;Zod validation&lt;/i&gt;&lt;br&gt;Valid request?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
           <mxGeometry x="490" y="420" width="300" height="100" as="geometry" />
         </mxCell>
@@ -559,95 +565,95 @@
         <mxCell id="submit-n_valid" value="Validated: fields, types, size or amount but not both (transfers: amount only), LIMIT with price, MARKET without price" style="shape=note;whiteSpace=wrap;html=1;size=14;align=left;spacingLeft=8;spacingRight=8;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="1">
           <mxGeometry x="40" y="420" width="300" height="100" as="geometry" />
         </mxCell>
-        <mxCell id="submit-exists" value="&lt;i style=&quot;font-size:10px&quot;&gt;SubmitOrder (use case) + AccountReader, InstrumentRepository&lt;/i&gt;&lt;br&gt;Do the user and instrument exist?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+        <mxCell id="submit-exists" value="&lt;i style=&quot;font-size:10px&quot;&gt;SubmitOrder (use case) + OrderInstrumentRepository&lt;/i&gt;&lt;br&gt;Does the instrument exist?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
           <mxGeometry x="490" y="570" width="300" height="200" as="geometry" />
         </mxCell>
         <mxCell id="submit-e404" value="&lt;i style=&quot;font-size:10px&quot;&gt;Error middleware&lt;/i&gt;&lt;br&gt;404 Not Found&lt;br&gt;nothing is stored" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
           <mxGeometry x="920" y="630" width="260" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="submit-ars" value="&lt;i style=&quot;font-size:10px&quot;&gt;Order (domain)&lt;/i&gt;&lt;br&gt;BUY or SELL on ARS?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
-          <mxGeometry x="490" y="820" width="300" height="100" as="geometry" />
+        <mxCell id="submit-ars" value="&lt;i style=&quot;font-size:10px&quot;&gt;Order (domain)&lt;/i&gt;&lt;br&gt;BUY or SELL on ARS, or a transfer on another instrument?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="490" y="820" width="300" height="180" as="geometry" />
         </mxCell>
         <mxCell id="submit-e422a" value="&lt;i style=&quot;font-size:10px&quot;&gt;Error middleware&lt;/i&gt;&lt;br&gt;422 Unprocessable Entity&lt;br&gt;nothing is stored" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
-          <mxGeometry x="920" y="830" width="260" height="80" as="geometry" />
+          <mxGeometry x="920" y="870" width="260" height="80" as="geometry" />
         </mxCell>
         <mxCell id="submit-pcache" value="&lt;i style=&quot;font-size:10px&quot;&gt;Cache (Valkey)&lt;/i&gt;&lt;br&gt;MARKET only: read the latest close from Valkey (TTL 60 s)" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#b0e3e6;strokeColor=#0e8088;" vertex="1" parent="1">
-          <mxGeometry x="450" y="970" width="380" height="80" as="geometry" />
+          <mxGeometry x="450" y="1050" width="380" height="80" as="geometry" />
         </mxCell>
         <mxCell id="submit-pdb" value="&lt;i style=&quot;font-size:10px&quot;&gt;MarketDataRepository&lt;/i&gt;&lt;br&gt;If missing or Valkey fails: read the latest close from marketdata and store it in Valkey" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
-          <mxGeometry x="450" y="1100" width="380" height="80" as="geometry" />
+          <mxGeometry x="450" y="1180" width="380" height="80" as="geometry" />
         </mxCell>
         <mxCell id="submit-price" value="&lt;i style=&quot;font-size:10px&quot;&gt;SubmitOrder (use case)&lt;/i&gt;&lt;br&gt;Resolve price:&lt;br&gt;MARKET = latest close&lt;br&gt;LIMIT = submitted price&lt;br&gt;CASH_IN / CASH_OUT = 1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
-          <mxGeometry x="450" y="1230" width="380" height="120" as="geometry" />
+          <mxGeometry x="450" y="1310" width="380" height="120" as="geometry" />
         </mxCell>
-        <mxCell id="submit-nomd" value="&lt;i style=&quot;font-size:10px&quot;&gt;SubmitOrder (use case)&lt;/i&gt;&lt;br&gt;MARKET without marketdata?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
-          <mxGeometry x="490" y="1400" width="300" height="140" as="geometry" />
+        <mxCell id="submit-nomd" value="&lt;i style=&quot;font-size:10px&quot;&gt;SubmitOrder (use case)&lt;/i&gt;&lt;br&gt;MARKET without market data, or with a close of 0?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="490" y="1480" width="300" height="180" as="geometry" />
         </mxCell>
         <mxCell id="submit-e422b" value="&lt;i style=&quot;font-size:10px&quot;&gt;Error middleware&lt;/i&gt;&lt;br&gt;422 Unprocessable Entity&lt;br&gt;nothing is stored" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
-          <mxGeometry x="920" y="1430" width="260" height="80" as="geometry" />
+          <mxGeometry x="920" y="1530" width="260" height="80" as="geometry" />
         </mxCell>
         <mxCell id="submit-qty" value="&lt;i style=&quot;font-size:10px&quot;&gt;OrderSizing (domain)&lt;/i&gt;&lt;br&gt;Resolve quantity: size, or integer part of amount / price. Transfers: pesos in amount, with cents" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
-          <mxGeometry x="450" y="1590" width="380" height="80" as="geometry" />
+          <mxGeometry x="450" y="1710" width="380" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="submit-zero" value="&lt;i style=&quot;font-size:10px&quot;&gt;OrderSizing (domain)&lt;/i&gt;&lt;br&gt;Quantity = 0?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
-          <mxGeometry x="490" y="1720" width="300" height="100" as="geometry" />
-        </mxCell>
-        <mxCell id="submit-e422c" value="&lt;i style=&quot;font-size:10px&quot;&gt;Error middleware&lt;/i&gt;&lt;br&gt;422 Unprocessable Entity&lt;br&gt;nothing is stored" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
-          <mxGeometry x="920" y="1730" width="260" height="80" as="geometry" />
-        </mxCell>
-        <mxCell id="submit-okdup" value="&lt;i style=&quot;font-size:10px&quot;&gt;Express controller&lt;/i&gt;&lt;br&gt;201 Created with the already stored order&lt;br&gt;(no new order is created)" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fontStyle=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
-          <mxGeometry x="1280" y="2920" width="280" height="100" as="geometry" />
-        </mxCell>
-        <mxCell id="submit-e422d" value="&lt;i style=&quot;font-size:10px&quot;&gt;Error middleware&lt;/i&gt;&lt;br&gt;422 Unprocessable Entity&lt;br&gt;Idempotency-Key used with a different body" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
-          <mxGeometry x="1280" y="3050" width="280" height="100" as="geometry" />
-        </mxCell>
-        <mxCell id="submit-tx" value="READ COMMITTED transaction with per-user lock" style="swimlane;whiteSpace=wrap;html=1;startSize=30;container=1;collapsible=0;rounded=0;fontStyle=1;fillColor=none;;dashed=1;strokeColor=#6c8ebf;fontColor=#1f3a5f;" vertex="1" parent="1">
-          <mxGeometry x="20" y="1870" width="1220" height="1210" as="geometry" />
+        <mxCell id="submit-tx" value="READ COMMITTED transaction with per-user lock" style="swimlane;whiteSpace=wrap;html=1;startSize=30;container=1;collapsible=0;rounded=0;fontStyle=1;fillColor=none;;;dashed=1;strokeColor=#6c8ebf;fontColor=#1f3a5f;align=left;spacingLeft=12;" vertex="1" parent="1">
+          <mxGeometry x="20" y="1840" width="1220" height="1540" as="geometry" />
         </mxCell>
         <mxCell id="submit-publish" value="&lt;i style=&quot;font-size:10px&quot;&gt;EventPublisher (SNS)&lt;/i&gt;&lt;br&gt;Publish order.created event to Amazon SNS&lt;br&gt;(on failure, it is logged and the order stays stored)" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
-          <mxGeometry x="450" y="3140" width="380" height="100" as="geometry" />
+          <mxGeometry x="450" y="3440" width="380" height="100" as="geometry" />
         </mxCell>
         <mxCell id="submit-created" value="&lt;i style=&quot;font-size:10px&quot;&gt;Express controller&lt;/i&gt;&lt;br&gt;201 Created with the order" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fontStyle=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
-          <mxGeometry x="450" y="3290" width="380" height="60" as="geometry" />
+          <mxGeometry x="450" y="3590" width="380" height="60" as="geometry" />
         </mxCell>
         <mxCell id="submit-fleg" value="Components" style="swimlane;whiteSpace=wrap;html=1;startSize=30;container=1;collapsible=0;rounded=0;fontStyle=1;fillColor=none;strokeColor=#666666;" vertex="1" parent="1">
-          <mxGeometry x="1640" y="110" width="300" height="380" as="geometry" />
+          <mxGeometry x="1320" y="110" width="300" height="380" as="geometry" />
         </mxCell>
         <mxCell id="submit-begin" value="&lt;i style=&quot;font-size:10px&quot;&gt;UnitOfWork&lt;/i&gt;&lt;br&gt;BEGIN (READ COMMITTED) + SELECT ... FOR UPDATE on the user row in users" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="submit-tx">
           <mxGeometry x="430" y="50" width="380" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="submit-avail" value="&lt;i style=&quot;font-size:10px&quot;&gt;AccountReader&lt;/i&gt;&lt;br&gt;Compute availability from orders:&lt;br&gt;pesos = FILLED − LIMIT BUY reservations in NEW&lt;br&gt;shares = FILLED − LIMIT SELL reservations in NEW" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="submit-tx">
-          <mxGeometry x="430" y="180" width="380" height="100" as="geometry" />
+        <mxCell id="submit-user" value="&lt;i style=&quot;font-size:10px&quot;&gt;UnitOfWork&lt;/i&gt;&lt;br&gt;Does the user exist?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="submit-tx">
+          <mxGeometry x="470" y="180" width="300" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="submit-e404u" value="&lt;i style=&quot;font-size:10px&quot;&gt;Error middleware&lt;/i&gt;&lt;br&gt;404 Not Found&lt;br&gt;ROLLBACK, nothing is stored" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="submit-tx">
+          <mxGeometry x="900" y="190" width="260" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="submit-dup" value="&lt;i style=&quot;font-size:10px&quot;&gt;OrderRepository&lt;/i&gt;&lt;br&gt;Order already stored with this Idempotency-Key?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="submit-tx">
+          <mxGeometry x="470" y="330" width="300" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="submit-replay" value="&lt;i style=&quot;font-size:10px&quot;&gt;SubmitOrder (use case)&lt;/i&gt;&lt;br&gt;Same request: 201 Created with the stored order&lt;br&gt;Different request: 422&lt;br&gt;Nothing new is stored, counted or published" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="submit-tx">
+          <mxGeometry x="900" y="360" width="260" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="submit-n_dup" value="The key is looked up after the lock, so two retries that arrive together cannot both insert." style="shape=note;whiteSpace=wrap;html=1;size=14;align=left;spacingLeft=8;spacingRight=8;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="submit-tx">
+          <mxGeometry x="20" y="380" width="300" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="submit-zero" value="&lt;i style=&quot;font-size:10px&quot;&gt;OrderSizing (domain)&lt;/i&gt;&lt;br&gt;Quantity from amount is 0, or above the maximum?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="submit-tx">
+          <mxGeometry x="470" y="560" width="300" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="submit-e422c" value="&lt;i style=&quot;font-size:10px&quot;&gt;Error middleware&lt;/i&gt;&lt;br&gt;422 Unprocessable Entity&lt;br&gt;ROLLBACK, nothing is stored" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="submit-tx">
+          <mxGeometry x="900" y="610" width="260" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="submit-avail" value="&lt;i style=&quot;font-size:10px&quot;&gt;FundsReader&lt;/i&gt;&lt;br&gt;Compute availability from orders:&lt;br&gt;pesos = FILLED − LIMIT BUY reservations in NEW&lt;br&gt;shares = FILLED − LIMIT SELL reservations in NEW" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="submit-tx">
+          <mxGeometry x="430" y="790" width="380" height="100" as="geometry" />
         </mxCell>
         <mxCell id="submit-funds" value="&lt;i style=&quot;font-size:10px&quot;&gt;FundsPolicy (domain)&lt;/i&gt;&lt;br&gt;Sufficient funds or holdings?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="submit-tx">
-          <mxGeometry x="470" y="330" width="300" height="140" as="geometry" />
+          <mxGeometry x="470" y="940" width="300" height="140" as="geometry" />
         </mxCell>
         <mxCell id="submit-rejected" value="&lt;i style=&quot;font-size:10px&quot;&gt;OrderRepository&lt;/i&gt;&lt;br&gt;INSERT order REJECTED&lt;br&gt;with clientorderid" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="submit-tx">
-          <mxGeometry x="900" y="360" width="260" height="80" as="geometry" />
+          <mxGeometry x="900" y="970" width="260" height="80" as="geometry" />
         </mxCell>
         <mxCell id="submit-n_funds" value="BUY and CASH_OUT: size × price ≤ available pesos&lt;br&gt;SELL: size ≤ available shares&lt;br&gt;CASH_IN: always" style="shape=note;whiteSpace=wrap;html=1;size=14;align=left;spacingLeft=8;spacingRight=8;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="submit-tx">
-          <mxGeometry x="20" y="350" width="300" height="100" as="geometry" />
+          <mxGeometry x="20" y="960" width="300" height="100" as="geometry" />
         </mxCell>
         <mxCell id="submit-type" value="&lt;i style=&quot;font-size:10px&quot;&gt;SubmitOrder (use case)&lt;/i&gt;&lt;br&gt;Type?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="submit-tx">
-          <mxGeometry x="510" y="520" width="220" height="140" as="geometry" />
+          <mxGeometry x="510" y="1130" width="220" height="140" as="geometry" />
         </mxCell>
         <mxCell id="submit-filled" value="&lt;i style=&quot;font-size:10px&quot;&gt;OrderRepository&lt;/i&gt;&lt;br&gt;INSERT order FILLED&lt;br&gt;with clientorderid" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="submit-tx">
-          <mxGeometry x="20" y="550" width="280" height="80" as="geometry" />
+          <mxGeometry x="20" y="1160" width="280" height="80" as="geometry" />
         </mxCell>
         <mxCell id="submit-new" value="&lt;i style=&quot;font-size:10px&quot;&gt;OrderRepository&lt;/i&gt;&lt;br&gt;INSERT order NEW with clientorderid&lt;br&gt;(the amount or quantity is reserved)" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="submit-tx">
-          <mxGeometry x="430" y="710" width="380" height="80" as="geometry" />
-        </mxCell>
-        <mxCell id="submit-dup" value="&lt;i style=&quot;font-size:10px&quot;&gt;OrderRepository&lt;/i&gt;&lt;br&gt;Already exists (userid, clientorderid)? (uniqueness violation)" style="rhombus;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="submit-tx">
-          <mxGeometry x="450" y="840" width="340" height="180" as="geometry" />
-        </mxCell>
-        <mxCell id="submit-rb" value="&lt;i style=&quot;font-size:10px&quot;&gt;OrderRepository&lt;/i&gt;&lt;br&gt;ROLLBACK and fetch the order already stored with that key" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="submit-tx">
-          <mxGeometry x="900" y="890" width="260" height="80" as="geometry" />
-        </mxCell>
-        <mxCell id="submit-same" value="&lt;i style=&quot;font-size:10px&quot;&gt;SubmitOrder (use case)&lt;/i&gt;&lt;br&gt;Same body as the request?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="submit-tx">
-          <mxGeometry x="900" y="1020" width="260" height="160" as="geometry" />
+          <mxGeometry x="430" y="1320" width="380" height="80" as="geometry" />
         </mxCell>
         <mxCell id="submit-commit" value="&lt;i style=&quot;font-size:10px&quot;&gt;UnitOfWork&lt;/i&gt;&lt;br&gt;COMMIT" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="submit-tx">
-          <mxGeometry x="430" y="1070" width="380" height="60" as="geometry" />
+          <mxGeometry x="430" y="1450" width="380" height="60" as="geometry" />
         </mxCell>
         <mxCell id="submit-fl0" value="Inbound adapter (Express)" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="submit-fleg">
           <mxGeometry x="20" y="40" width="260" height="30" as="geometry" />
@@ -682,120 +688,113 @@
         <mxCell id="submit-e2" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-idem" target="submit-e400k">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="submit-e3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;endArrow=none;dashed=1;strokeColor=#999999;" edge="1" parent="1" source="submit-n_idem" target="submit-idem">
+        <mxCell id="submit-e3" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-idem" target="submit-valid">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="submit-e4" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-idem" target="submit-valid">
+        <mxCell id="submit-e4" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-valid" target="submit-e400">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="submit-e5" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-valid" target="submit-e400">
+        <mxCell id="submit-e5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=none;dashed=1;strokeColor=#999999;" edge="1" parent="1" source="submit-n_valid" target="submit-valid">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="submit-e6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;endArrow=none;dashed=1;strokeColor=#999999;" edge="1" parent="1" source="submit-n_valid" target="submit-valid">
+        <mxCell id="submit-e6" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-valid" target="submit-exists">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="submit-e7" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-valid" target="submit-exists">
+        <mxCell id="submit-e7" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-exists" target="submit-e404">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="submit-e8" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-exists" target="submit-e404">
+        <mxCell id="submit-e8" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-exists" target="submit-ars">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="submit-e9" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-exists" target="submit-ars">
+        <mxCell id="submit-e9" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-ars" target="submit-e422a">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="submit-e10" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-ars" target="submit-e422a">
+        <mxCell id="submit-e10" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-ars" target="submit-pcache">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="submit-e11" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-ars" target="submit-pcache">
+        <mxCell id="submit-e11" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-pcache" target="submit-pdb">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="submit-e12" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-pcache" target="submit-pdb">
+        <mxCell id="submit-e12" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-pdb" target="submit-price">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="submit-e13" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-pdb" target="submit-price">
+        <mxCell id="submit-e13" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-price" target="submit-nomd">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="submit-e14" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-price" target="submit-nomd">
+        <mxCell id="submit-e14" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-nomd" target="submit-e422b">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="submit-e15" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-nomd" target="submit-e422b">
+        <mxCell id="submit-e15" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-nomd" target="submit-qty">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="submit-e16" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-nomd" target="submit-qty">
+        <mxCell id="submit-e16" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-qty" target="submit-begin">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="submit-e17" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-qty" target="submit-zero">
+        <mxCell id="submit-e17" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-begin" target="submit-user">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="submit-e18" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-zero" target="submit-e422c">
+        <mxCell id="submit-e18" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-user" target="submit-e404u">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="submit-e19" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-zero" target="submit-begin">
+        <mxCell id="submit-e19" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-user" target="submit-dup">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="submit-e20" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-begin" target="submit-avail">
+        <mxCell id="submit-e20" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-dup" target="submit-replay">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="submit-e21" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-avail" target="submit-funds">
+        <mxCell id="submit-e21" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=none;dashed=1;strokeColor=#999999;" edge="1" parent="1" source="submit-n_dup" target="submit-dup">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="submit-e22" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-funds" target="submit-rejected">
+        <mxCell id="submit-e22" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-dup" target="submit-zero">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="submit-e23" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;endArrow=none;dashed=1;strokeColor=#999999;" edge="1" parent="1" source="submit-n_funds" target="submit-funds">
+        <mxCell id="submit-e23" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-zero" target="submit-e422c">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="submit-e24" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-funds" target="submit-type">
+        <mxCell id="submit-e24" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-zero" target="submit-avail">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="submit-e25" value="MARKET&lt;br&gt;(and transfers)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-type" target="submit-filled">
+        <mxCell id="submit-e25" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-avail" target="submit-funds">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="submit-e26" value="LIMIT" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-type" target="submit-new">
+        <mxCell id="submit-e26" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-funds" target="submit-rejected">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="submit-e27" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-new" target="submit-dup">
+        <mxCell id="submit-e27" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=none;dashed=1;strokeColor=#999999;" edge="1" parent="1" source="submit-n_funds" target="submit-funds">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="submit-e28" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-filled" target="submit-dup">
+        <mxCell id="submit-e28" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-funds" target="submit-type">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="submit-e29" value="MARKET&lt;br&gt;(and transfers)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-type" target="submit-filled">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="submit-e30" value="LIMIT" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-type" target="submit-new">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="submit-e31" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-new" target="submit-commit">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="submit-e32" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-filled" target="submit-commit">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="180" y="2680" />
-              <mxPoint x="640" y="2680" />
+              <mxPoint x="180" y="3260" />
+              <mxPoint x="640" y="3260" />
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="submit-e29" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-rejected" target="submit-dup">
+        <mxCell id="submit-e33" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-rejected" target="submit-commit">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="1050" y="2680" />
-              <mxPoint x="640" y="2680" />
+              <mxPoint x="1050" y="3260" />
+              <mxPoint x="640" y="3260" />
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="submit-e30" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-dup" target="submit-rb">
+        <mxCell id="submit-e34" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-commit" target="submit-publish">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="submit-e31" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-rb" target="submit-same">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="submit-e32" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-same" target="submit-okdup">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="submit-e33" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-same" target="submit-e422d">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="1050" y="3100" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="submit-e34" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-dup" target="submit-commit">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="submit-e35" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-commit" target="submit-publish">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="submit-e36" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-publish" target="submit-created">
+        <mxCell id="submit-e35" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit-publish" target="submit-created">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
       </root>
@@ -815,44 +814,50 @@
         <mxCell id="cancel-start" value="&lt;i style=&quot;font-size:10px&quot;&gt;Express controller&lt;/i&gt;&lt;br&gt;Receive POST /orders/:orderId/cancel" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fontStyle=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
           <mxGeometry x="340" y="120" width="360" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="cancel-n_idem" value="No Idempotency-Key: cancelling is already idempotent, repeating it does not change the order status." style="shape=note;whiteSpace=wrap;html=1;size=14;align=left;spacingLeft=8;spacingRight=8;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="1">
-          <mxGeometry x="800" y="120" width="300" height="80" as="geometry" />
+        <mxCell id="cancel-find" value="&lt;i style=&quot;font-size:10px&quot;&gt;OrderRepository&lt;/i&gt;&lt;br&gt;Read the order to find the user who owns it" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="340" y="230" width="360" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="cancel-tx" value="Transaction" style="swimlane;whiteSpace=wrap;html=1;startSize=30;container=1;collapsible=0;rounded=0;fontStyle=1;fillColor=none;;dashed=1;strokeColor=#6c8ebf;fontColor=#1f3a5f;" vertex="1" parent="1">
-          <mxGeometry x="300" y="230" width="820" height="700" as="geometry" />
+        <mxCell id="cancel-exists" value="&lt;i style=&quot;font-size:10px&quot;&gt;CancelOrder (use case)&lt;/i&gt;&lt;br&gt;Does the order exist?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="380" y="340" width="280" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="cancel-e404" value="&lt;i style=&quot;font-size:10px&quot;&gt;Error middleware&lt;/i&gt;&lt;br&gt;404 Not Found" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="800" y="380" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="cancel-n_idem" value="No Idempotency-Key: a second cancel answers 409, because the order is no longer NEW." style="shape=note;whiteSpace=wrap;html=1;size=14;align=left;spacingLeft=8;spacingRight=8;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="40" y="120" width="220" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="cancel-tx" value="Transaction" style="swimlane;whiteSpace=wrap;html=1;startSize=30;container=1;collapsible=0;rounded=0;fontStyle=1;fillColor=none;;;dashed=1;strokeColor=#6c8ebf;fontColor=#1f3a5f;align=left;spacingLeft=12;" vertex="1" parent="1">
+          <mxGeometry x="300" y="530" width="820" height="620" as="geometry" />
         </mxCell>
         <mxCell id="cancel-publish" value="&lt;i style=&quot;font-size:10px&quot;&gt;EventPublisher (SNS)&lt;/i&gt;&lt;br&gt;Publish order.cancelled event to Amazon SNS&lt;br&gt;(after COMMIT)" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
-          <mxGeometry x="340" y="990" width="360" height="80" as="geometry" />
+          <mxGeometry x="340" y="1210" width="360" height="80" as="geometry" />
         </mxCell>
         <mxCell id="cancel-ok" value="&lt;i style=&quot;font-size:10px&quot;&gt;Express controller&lt;/i&gt;&lt;br&gt;200 OK with the order" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fontStyle=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
-          <mxGeometry x="340" y="1120" width="360" height="60" as="geometry" />
+          <mxGeometry x="340" y="1340" width="360" height="60" as="geometry" />
         </mxCell>
         <mxCell id="cancel-note" value="The reservation of pesos or shares is released automatically: it is derived from orders in NEW." style="shape=note;whiteSpace=wrap;html=1;size=14;align=left;spacingLeft=8;spacingRight=8;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="1">
-          <mxGeometry x="800" y="990" width="300" height="80" as="geometry" />
+          <mxGeometry x="800" y="1210" width="300" height="80" as="geometry" />
         </mxCell>
         <mxCell id="cancel-fleg" value="Components" style="swimlane;whiteSpace=wrap;html=1;startSize=30;container=1;collapsible=0;rounded=0;fontStyle=1;fillColor=none;strokeColor=#666666;" vertex="1" parent="1">
           <mxGeometry x="1200" y="110" width="300" height="340" as="geometry" />
         </mxCell>
-        <mxCell id="cancel-begin" value="&lt;i style=&quot;font-size:10px&quot;&gt;UnitOfWork + OrderRepository&lt;/i&gt;&lt;br&gt;BEGIN + lock on the user who owns the order" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="cancel-tx">
+        <mxCell id="cancel-begin" value="&lt;i style=&quot;font-size:10px&quot;&gt;UnitOfWork&lt;/i&gt;&lt;br&gt;BEGIN + lock on the user who owns the order" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="cancel-tx">
           <mxGeometry x="40" y="50" width="360" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="cancel-exists" value="&lt;i style=&quot;font-size:10px&quot;&gt;CancelOrder (use case)&lt;/i&gt;&lt;br&gt;Does the order exist?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="cancel-tx">
-          <mxGeometry x="80" y="160" width="280" height="140" as="geometry" />
-        </mxCell>
-        <mxCell id="cancel-e404" value="&lt;i style=&quot;font-size:10px&quot;&gt;Error middleware&lt;/i&gt;&lt;br&gt;404 Not Found" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="cancel-tx">
-          <mxGeometry x="500" y="200" width="280" height="60" as="geometry" />
+        <mxCell id="cancel-reread" value="&lt;i style=&quot;font-size:10px&quot;&gt;OrderRepository&lt;/i&gt;&lt;br&gt;Read the order again, under the lock" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="cancel-tx">
+          <mxGeometry x="40" y="160" width="360" height="60" as="geometry" />
         </mxCell>
         <mxCell id="cancel-isnew" value="&lt;i style=&quot;font-size:10px&quot;&gt;Order (domain)&lt;/i&gt;&lt;br&gt;Status = NEW?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="cancel-tx">
-          <mxGeometry x="80" y="350" width="280" height="100" as="geometry" />
+          <mxGeometry x="80" y="270" width="280" height="100" as="geometry" />
         </mxCell>
         <mxCell id="cancel-e409" value="&lt;i style=&quot;font-size:10px&quot;&gt;Error middleware&lt;/i&gt;&lt;br&gt;409 Conflict&lt;br&gt;(only NEW orders can be cancelled)" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="cancel-tx">
-          <mxGeometry x="500" y="360" width="280" height="80" as="geometry" />
+          <mxGeometry x="500" y="280" width="280" height="80" as="geometry" />
         </mxCell>
         <mxCell id="cancel-update" value="&lt;i style=&quot;font-size:10px&quot;&gt;OrderRepository&lt;/i&gt;&lt;br&gt;UPDATE status = CANCELLED" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="cancel-tx">
-          <mxGeometry x="40" y="500" width="360" height="60" as="geometry" />
+          <mxGeometry x="40" y="420" width="360" height="60" as="geometry" />
         </mxCell>
         <mxCell id="cancel-commit" value="&lt;i style=&quot;font-size:10px&quot;&gt;UnitOfWork&lt;/i&gt;&lt;br&gt;COMMIT" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="cancel-tx">
-          <mxGeometry x="40" y="610" width="360" height="60" as="geometry" />
+          <mxGeometry x="40" y="530" width="360" height="60" as="geometry" />
         </mxCell>
         <mxCell id="cancel-fl0" value="Inbound adapter (Express)" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="cancel-fleg">
           <mxGeometry x="20" y="40" width="260" height="30" as="geometry" />
@@ -878,31 +883,37 @@
         <mxCell id="cancel-fl_rt" value="Diamond = decision" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;fontSize=12;" vertex="1" parent="cancel-fleg">
           <mxGeometry x="100" y="280" width="180" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="cancel-e1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="cancel-start" target="cancel-begin">
+        <mxCell id="cancel-e1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="cancel-start" target="cancel-find">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="cancel-e2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="cancel-begin" target="cancel-exists">
+        <mxCell id="cancel-e2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="cancel-find" target="cancel-exists">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="cancel-e3" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="cancel-exists" target="cancel-e404">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="cancel-e4" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="cancel-exists" target="cancel-isnew">
+        <mxCell id="cancel-e4" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="cancel-exists" target="cancel-begin">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="cancel-e5" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="cancel-isnew" target="cancel-e409">
+        <mxCell id="cancel-e5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="cancel-begin" target="cancel-reread">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="cancel-e6" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="cancel-isnew" target="cancel-update">
+        <mxCell id="cancel-e6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="cancel-reread" target="cancel-isnew">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="cancel-e7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="cancel-update" target="cancel-commit">
+        <mxCell id="cancel-e7" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="cancel-isnew" target="cancel-e409">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="cancel-e8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="cancel-commit" target="cancel-publish">
+        <mxCell id="cancel-e8" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="cancel-isnew" target="cancel-update">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="cancel-e9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="cancel-publish" target="cancel-ok">
+        <mxCell id="cancel-e9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="cancel-update" target="cancel-commit">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cancel-e10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="cancel-commit" target="cancel-publish">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cancel-e11" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="cancel-publish" target="cancel-ok">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
       </root>
@@ -922,19 +933,19 @@
         <mxCell id="portfolio-start" value="&lt;i style=&quot;font-size:10px&quot;&gt;Express controller&lt;/i&gt;&lt;br&gt;Receive GET /users/:userId/portfolio" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fontStyle=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
           <mxGeometry x="330" y="120" width="460" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="portfolio-exists" value="&lt;i style=&quot;font-size:10px&quot;&gt;GetPortfolio (use case) + AccountReader&lt;/i&gt;&lt;br&gt;Does the user exist?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+        <mxCell id="portfolio-exists" value="&lt;i style=&quot;font-size:10px&quot;&gt;GetPortfolio (use case) + PortfolioReader&lt;/i&gt;&lt;br&gt;Does the user exist?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
           <mxGeometry x="420" y="230" width="280" height="160" as="geometry" />
         </mxCell>
         <mxCell id="portfolio-e404" value="&lt;i style=&quot;font-size:10px&quot;&gt;Error middleware&lt;/i&gt;&lt;br&gt;404 Not Found" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
           <mxGeometry x="880" y="280" width="240" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="portfolio-cash" value="&lt;i style=&quot;font-size:10px&quot;&gt;AccountReader&lt;/i&gt;&lt;br&gt;Query pesos: sum of FILLED orders&lt;br&gt;(CASH_IN + SELL × price − CASH_OUT − BUY × price)" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+        <mxCell id="portfolio-cash" value="&lt;i style=&quot;font-size:10px&quot;&gt;PortfolioReader&lt;/i&gt;&lt;br&gt;Query pesos: sum of FILLED orders&lt;br&gt;(CASH_IN + SELL × price − CASH_OUT − BUY × price)" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
           <mxGeometry x="330" y="440" width="460" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="portfolio-avail" value="&lt;i style=&quot;font-size:10px&quot;&gt;AccountReader&lt;/i&gt;&lt;br&gt;Subtract reservations (LIMIT BUY in NEW: size × price)&lt;br&gt;= available pesos" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+        <mxCell id="portfolio-avail" value="&lt;i style=&quot;font-size:10px&quot;&gt;PortfolioReader&lt;/i&gt;&lt;br&gt;Subtract reservations (LIMIT BUY in NEW: size × price)&lt;br&gt;= available pesos" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
           <mxGeometry x="330" y="570" width="460" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="portfolio-pos" value="&lt;i style=&quot;font-size:10px&quot;&gt;AccountReader&lt;/i&gt;&lt;br&gt;Query positions per instrument:&lt;br&gt;net quantity of FILLED orders (BUY − SELL)&lt;br&gt;weighted average cost of FILLED purchases" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+        <mxCell id="portfolio-pos" value="&lt;i style=&quot;font-size:10px&quot;&gt;PortfolioReader&lt;/i&gt;&lt;br&gt;Query positions per instrument:&lt;br&gt;net quantity of FILLED orders (BUY − SELL)&lt;br&gt;weighted average cost of FILLED purchases" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
           <mxGeometry x="330" y="700" width="460" height="100" as="geometry" />
         </mxCell>
         <mxCell id="portfolio-drop" value="&lt;i style=&quot;font-size:10px&quot;&gt;GetPortfolio (use case)&lt;/i&gt;&lt;br&gt;Discard positions with quantity ≤ 0" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
@@ -952,7 +963,7 @@
         <mxCell id="portfolio-total" value="&lt;i style=&quot;font-size:10px&quot;&gt;GetPortfolio (use case)&lt;/i&gt;&lt;br&gt;Total value = peso balance + sum of market values" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
           <mxGeometry x="330" y="1390" width="460" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="portfolio-ok" value="&lt;i style=&quot;font-size:10px&quot;&gt;Express controller&lt;/i&gt;&lt;br&gt;200 OK with totalValue, availableCash, positions" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fontStyle=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+        <mxCell id="portfolio-ok" value="&lt;i style=&quot;font-size:10px&quot;&gt;Express controller&lt;/i&gt;&lt;br&gt;200 OK with totalAccountValue, availableCash, positions" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fontStyle=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
           <mxGeometry x="330" y="1500" width="460" height="60" as="geometry" />
         </mxCell>
         <mxCell id="portfolio-note" value="Expected result for user 1:&lt;br&gt;balance 753,000.00; available 627,500.00; PAMP 40, METR 500; total value 904,784.00" style="shape=note;whiteSpace=wrap;html=1;size=14;align=left;spacingLeft=8;spacingRight=8;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="1">
@@ -1044,32 +1055,32 @@
         <mxCell id="search-e400" value="&lt;i style=&quot;font-size:10px&quot;&gt;Error middleware&lt;/i&gt;&lt;br&gt;400 Bad Request" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
           <mxGeometry x="960" y="270" width="260" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="search-norm" value="&lt;i style=&quot;font-size:10px&quot;&gt;Zod validation&lt;/i&gt;&lt;br&gt;Normalize q (trim) and limit (default 20, maximum 100)" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
-          <mxGeometry x="420" y="420" width="440" height="60" as="geometry" />
+        <mxCell id="search-norm" value="&lt;i style=&quot;font-size:10px&quot;&gt;Zod validation&lt;/i&gt;&lt;br&gt;Normalize q (trim, lowercase) and limit (default 20, maximum 100)" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="420" y="420" width="440" height="80" as="geometry" />
         </mxCell>
         <mxCell id="search-hit" value="&lt;i style=&quot;font-size:10px&quot;&gt;Cache (Valkey)&lt;/i&gt;&lt;br&gt;Result in Valkey for that text?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#b0e3e6;strokeColor=#0e8088;" vertex="1" parent="1">
-          <mxGeometry x="490" y="530" width="300" height="140" as="geometry" />
+          <mxGeometry x="490" y="550" width="300" height="140" as="geometry" />
         </mxCell>
         <mxCell id="search-okc" value="&lt;i style=&quot;font-size:10px&quot;&gt;Express controller&lt;/i&gt;&lt;br&gt;200 OK with the stored result" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
-          <mxGeometry x="960" y="570" width="260" height="60" as="geometry" />
+          <mxGeometry x="960" y="590" width="260" height="60" as="geometry" />
         </mxCell>
         <mxCell id="search-n_hit" value="Key built from the normalized search text, limit and offset. If Valkey fails, it is treated as a miss and PostgreSQL is queried." style="shape=note;whiteSpace=wrap;html=1;size=14;align=left;spacingLeft=8;spacingRight=8;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="1">
-          <mxGeometry x="40" y="550" width="300" height="100" as="geometry" />
+          <mxGeometry x="40" y="570" width="300" height="100" as="geometry" />
         </mxCell>
-        <mxCell id="search-query" value="&lt;i style=&quot;font-size:10px&quot;&gt;InstrumentRepository&lt;/i&gt;&lt;br&gt;Query instruments with unaccent(ticker or name) ILIKE unaccent('%q%')&lt;br&gt;(case- and accent-insensitive)" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
-          <mxGeometry x="420" y="720" width="440" height="100" as="geometry" />
+        <mxCell id="search-query" value="&lt;i style=&quot;font-size:10px&quot;&gt;InstrumentSearchRepository&lt;/i&gt;&lt;br&gt;Query instruments with unaccent(ticker or name) ILIKE unaccent('%q%')&lt;br&gt;(case- and accent-insensitive)" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="420" y="740" width="440" height="100" as="geometry" />
         </mxCell>
-        <mxCell id="search-sort" value="&lt;i style=&quot;font-size:10px&quot;&gt;InstrumentRepository (ORDER BY)&lt;/i&gt;&lt;br&gt;Sort: exact ticker match first, then ticker alphabetically" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
-          <mxGeometry x="420" y="870" width="440" height="60" as="geometry" />
+        <mxCell id="search-sort" value="&lt;i style=&quot;font-size:10px&quot;&gt;InstrumentSearchRepository (ORDER BY)&lt;/i&gt;&lt;br&gt;Sort: exact ticker match first, then ticker prefix, then the rest by ticker" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="420" y="890" width="440" height="80" as="geometry" />
         </mxCell>
         <mxCell id="search-md" value="&lt;i style=&quot;font-size:10px&quot;&gt;MarketDataRepository&lt;/i&gt;&lt;br&gt;Add the latest close from marketdata" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
-          <mxGeometry x="420" y="980" width="440" height="60" as="geometry" />
+          <mxGeometry x="420" y="1020" width="440" height="60" as="geometry" />
         </mxCell>
         <mxCell id="search-store" value="&lt;i style=&quot;font-size:10px&quot;&gt;Cache (Valkey)&lt;/i&gt;&lt;br&gt;Store the result in Valkey (TTL 5 min); on failure, respond anyway" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#b0e3e6;strokeColor=#0e8088;" vertex="1" parent="1">
-          <mxGeometry x="420" y="1090" width="440" height="80" as="geometry" />
+          <mxGeometry x="420" y="1130" width="440" height="80" as="geometry" />
         </mxCell>
         <mxCell id="search-ok" value="&lt;i style=&quot;font-size:10px&quot;&gt;Express controller&lt;/i&gt;&lt;br&gt;200 OK with the paginated list&lt;br&gt;(empty list if nothing matches)" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fontStyle=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
-          <mxGeometry x="420" y="1220" width="440" height="80" as="geometry" />
+          <mxGeometry x="420" y="1260" width="440" height="80" as="geometry" />
         </mxCell>
         <mxCell id="search-fleg" value="Components" style="swimlane;whiteSpace=wrap;html=1;startSize=30;container=1;collapsible=0;rounded=0;fontStyle=1;fillColor=none;strokeColor=#666666;" vertex="1" parent="1">
           <mxGeometry x="1300" y="110" width="300" height="380" as="geometry" />
@@ -1116,7 +1127,7 @@
         <mxCell id="search-e5" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="search-hit" target="search-okc">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="search-e6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;endArrow=none;dashed=1;strokeColor=#999999;" edge="1" parent="1" source="search-n_hit" target="search-hit">
+        <mxCell id="search-e6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=none;dashed=1;strokeColor=#999999;" edge="1" parent="1" source="search-n_hit" target="search-hit">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="search-e7" value="No, or Valkey fails" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="search-hit" target="search-query">
@@ -1151,44 +1162,44 @@
         <mxCell id="consumer-start" value="&lt;i style=&quot;font-size:10px&quot;&gt;cocos-api process&lt;/i&gt;&lt;br&gt;API process startup" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fontStyle=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
           <mxGeometry x="460" y="120" width="400" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="consumer-en" value="&lt;i style=&quot;font-size:10px&quot;&gt;SQS event consumer&lt;/i&gt;&lt;br&gt;CONSUMER_ENABLED=true?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffcce6;strokeColor=#cc0066;" vertex="1" parent="1">
-          <mxGeometry x="500" y="230" width="320" height="100" as="geometry" />
+        <mxCell id="consumer-en" value="&lt;i style=&quot;font-size:10px&quot;&gt;SQS event consumer&lt;/i&gt;&lt;br&gt;AWS_ENABLED and CONSUMER_ENABLED = true?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffcce6;strokeColor=#cc0066;" vertex="1" parent="1">
+          <mxGeometry x="500" y="230" width="320" height="140" as="geometry" />
         </mxCell>
         <mxCell id="consumer-off" value="&lt;i style=&quot;font-size:10px&quot;&gt;cocos-api process&lt;/i&gt;&lt;br&gt;The consumer does not start; the API only serves HTTP" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="1">
-          <mxGeometry x="960" y="240" width="280" height="80" as="geometry" />
+          <mxGeometry x="960" y="260" width="280" height="80" as="geometry" />
         </mxCell>
         <mxCell id="consumer-n_loop" value="No worker_thread: the work is I/O-bound. If the metrics show it slows the API, it moves to a separate process." style="shape=note;whiteSpace=wrap;html=1;size=14;align=left;spacingLeft=8;spacingRight=8;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="1">
-          <mxGeometry x="40" y="240" width="300" height="80" as="geometry" />
+          <mxGeometry x="40" y="260" width="300" height="80" as="geometry" />
         </mxCell>
         <mxCell id="consumer-recv" value="&lt;i style=&quot;font-size:10px&quot;&gt;SQS event consumer&lt;/i&gt;&lt;br&gt;ReceiveMessage on order-events-queue&lt;br&gt;(long polling)" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#ffcce6;strokeColor=#cc0066;" vertex="1" parent="1">
-          <mxGeometry x="460" y="380" width="400" height="80" as="geometry" />
+          <mxGeometry x="460" y="420" width="400" height="80" as="geometry" />
         </mxCell>
         <mxCell id="consumer-msgs" value="&lt;i style=&quot;font-size:10px&quot;&gt;SQS event consumer&lt;/i&gt;&lt;br&gt;Did messages arrive?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffcce6;strokeColor=#cc0066;" vertex="1" parent="1">
-          <mxGeometry x="500" y="510" width="320" height="100" as="geometry" />
+          <mxGeometry x="500" y="550" width="320" height="100" as="geometry" />
         </mxCell>
         <mxCell id="consumer-parse" value="&lt;i style=&quot;font-size:10px&quot;&gt;SQS event consumer&lt;/i&gt;&lt;br&gt;Parse the event: eventId and type&lt;br&gt;(order.created / order.cancelled)" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#ffcce6;strokeColor=#cc0066;" vertex="1" parent="1">
-          <mxGeometry x="460" y="660" width="400" height="80" as="geometry" />
+          <mxGeometry x="460" y="700" width="400" height="80" as="geometry" />
         </mxCell>
         <mxCell id="consumer-rec" value="&lt;i style=&quot;font-size:10px&quot;&gt;RecordOrderEvent (use case)&lt;/i&gt;&lt;br&gt;Record the event" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
-          <mxGeometry x="460" y="790" width="400" height="60" as="geometry" />
+          <mxGeometry x="460" y="830" width="400" height="60" as="geometry" />
         </mxCell>
         <mxCell id="consumer-ins" value="&lt;i style=&quot;font-size:10px&quot;&gt;OrderEventStore (PostgreSQL)&lt;/i&gt;&lt;br&gt;INSERT INTO analytics.order_events ... ON CONFLICT (event_id) DO NOTHING" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
-          <mxGeometry x="460" y="900" width="400" height="80" as="geometry" />
+          <mxGeometry x="460" y="940" width="400" height="80" as="geometry" />
         </mxCell>
         <mxCell id="consumer-n_ins" value="Unique key on event_id: a repeated event stores nothing." style="shape=note;whiteSpace=wrap;html=1;size=14;align=left;spacingLeft=8;spacingRight=8;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="1">
-          <mxGeometry x="40" y="900" width="300" height="80" as="geometry" />
+          <mxGeometry x="40" y="940" width="300" height="80" as="geometry" />
         </mxCell>
         <mxCell id="consumer-ok" value="&lt;i style=&quot;font-size:10px&quot;&gt;SQS event consumer&lt;/i&gt;&lt;br&gt;Parse and store without error?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffcce6;strokeColor=#cc0066;" vertex="1" parent="1">
-          <mxGeometry x="500" y="1030" width="320" height="140" as="geometry" />
+          <mxGeometry x="500" y="1070" width="320" height="140" as="geometry" />
         </mxCell>
-        <mxCell id="consumer-fail" value="&lt;i style=&quot;font-size:10px&quot;&gt;SQS event consumer&lt;/i&gt;&lt;br&gt;The message is not deleted: it becomes visible again when the visibility timeout expires and is retried" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
-          <mxGeometry x="960" y="1050" width="280" height="100" as="geometry" />
+        <mxCell id="consumer-fail" value="&lt;i style=&quot;font-size:10px&quot;&gt;SQS event consumer&lt;/i&gt;&lt;br&gt;The message is not deleted: it becomes visible again when the visibility timeout expires and is retried. After 5 receives it moves to order-events-dlq" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="960" y="1080" width="280" height="120" as="geometry" />
         </mxCell>
         <mxCell id="consumer-del" value="&lt;i style=&quot;font-size:10px&quot;&gt;SQS event consumer&lt;/i&gt;&lt;br&gt;DeleteMessage on order-events-queue" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#ffcce6;strokeColor=#cc0066;" vertex="1" parent="1">
-          <mxGeometry x="460" y="1220" width="400" height="60" as="geometry" />
+          <mxGeometry x="460" y="1260" width="400" height="60" as="geometry" />
         </mxCell>
         <mxCell id="consumer-met" value="&lt;i style=&quot;font-size:10px&quot;&gt;Metrics (prom-client)&lt;/i&gt;&lt;br&gt;Update metrics: processed and failed messages, processing latency, pending messages in the queue, event loop lag" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="1">
-          <mxGeometry x="460" y="1330" width="400" height="100" as="geometry" />
+          <mxGeometry x="460" y="1370" width="400" height="100" as="geometry" />
         </mxCell>
         <mxCell id="consumer-fleg" value="Components" style="swimlane;whiteSpace=wrap;html=1;startSize=30;container=1;collapsible=0;rounded=0;fontStyle=1;fillColor=none;strokeColor=#666666;" vertex="1" parent="1">
           <mxGeometry x="1320" y="110" width="300" height="420" as="geometry" />
@@ -1229,7 +1240,7 @@
         <mxCell id="consumer-e2" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="consumer-en" target="consumer-off">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="consumer-e3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;endArrow=none;dashed=1;strokeColor=#999999;" edge="1" parent="1" source="consumer-n_loop" target="consumer-en">
+        <mxCell id="consumer-e3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=none;dashed=1;strokeColor=#999999;" edge="1" parent="1" source="consumer-n_loop" target="consumer-en">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="consumer-e4" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="consumer-en" target="consumer-recv">
@@ -1241,8 +1252,8 @@
         <mxCell id="consumer-e6" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="consumer-msgs" target="consumer-recv">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="920" y="560" />
-              <mxPoint x="920" y="420" />
+              <mxPoint x="920" y="600" />
+              <mxPoint x="920" y="460" />
             </Array>
           </mxGeometry>
         </mxCell>
@@ -1255,7 +1266,7 @@
         <mxCell id="consumer-e9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="consumer-rec" target="consumer-ins">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="consumer-e10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;endArrow=none;dashed=1;strokeColor=#999999;" edge="1" parent="1" source="consumer-n_ins" target="consumer-ins">
+        <mxCell id="consumer-e10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=none;dashed=1;strokeColor=#999999;" edge="1" parent="1" source="consumer-n_ins" target="consumer-ins">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="consumer-e11" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="consumer-ins" target="consumer-ok">
@@ -1273,15 +1284,15 @@
         <mxCell id="consumer-e15" value="counts as failed" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="consumer-fail" target="consumer-met">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="1100" y="1380" />
+              <mxPoint x="1100" y="1420" />
             </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="consumer-e16" value="next cycle" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;labelBackgroundColor=default;endArrow=block;endFill=1;fontSize=11;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="consumer-met" target="consumer-recv">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="400" y="1380" />
-              <mxPoint x="400" y="420" />
+              <mxPoint x="400" y="1420" />
+              <mxPoint x="400" y="460" />
             </Array>
           </mxGeometry>
         </mxCell>

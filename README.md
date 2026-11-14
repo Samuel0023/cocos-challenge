@@ -16,15 +16,17 @@ make services   # PostgreSQL, Valkey, AWS Emulator, Prometheus and Grafana in Do
 make dev        # API on the host, http://localhost:3000, SNS/SQS on AWS Emulator
 ```
 
-| Command         | What it does                                                                      |
-| --------------- | --------------------------------------------------------------------------------- |
-| `make services` | Starts PostgreSQL, Valkey, AWS Emulator (topic and queue), Prometheus and Grafana |
-| `make dev`      | Runs the API on the host with file watching, events on AWS Emulator               |
-| `make up`       | Starts everything in Docker, API included                                         |
-| `make test`     | Runs unit and functional tests (needs Docker)                                     |
-| `make test-aws` | Runs the SNS to SQS integration test against AWS Emulator (after `make services`) |
-| `make lint`     | Runs ESLint and Prettier                                                          |
-| `make down`     | Stops and removes the containers                                                  |
+| Command          | What it does                                                                      |
+| ---------------- | --------------------------------------------------------------------------------- |
+| `make services`  | Starts PostgreSQL, Valkey, AWS Emulator (topic and queue), Prometheus and Grafana |
+| `make dev`       | Runs the API on the host with file watching, events on AWS Emulator               |
+| `make up`        | Starts everything in Docker, API included                                         |
+| `make test`      | Runs unit and functional tests (needs Docker)                                     |
+| `make test-aws`  | Runs the SNS to SQS integration test against AWS Emulator (after `make services`) |
+| `make load`      | Runs the k6 load test against a running API (after `make dev` or `make up`)       |
+| `make lint`      | Runs ESLint and Prettier                                                          |
+| `make typecheck` | Runs the TypeScript compiler without emitting                                     |
+| `make down`      | Stops and removes the containers                                                  |
 
 Run `make down` before switching between `make services` and `make up`.
 
@@ -41,25 +43,27 @@ After starting the API, the interactive docs (Swagger UI) are at http://localhos
 
 ## Endpoints
 
-| Method and path                      | What it does                                | Status codes       |
-| ------------------------------------ | ------------------------------------------- | ------------------ |
-| `GET /users/:userId/portfolio`       | Account value, available cash and positions | 200, 400, 404      |
-| `GET /instruments?q=&limit=&offset=` | Searches instruments by ticker or name      | 200, 400           |
-| `POST /orders`                       | Submits an order or a cash transfer         | 201, 400, 404, 422 |
-| `POST /orders/:orderId/cancel`       | Cancels an order in `NEW`                   | 200, 400, 404, 409 |
-| `GET /health`                        | Checks the database connection              | 200, 503           |
-| `GET /metrics`                       | Prometheus metrics                          | 200                |
+| Method and path                      | What it does                                | Status codes                 |
+| ------------------------------------ | ------------------------------------------- | ---------------------------- |
+| `GET /users/:userId/portfolio`       | Account value, available cash and positions | 200, 400, 404                |
+| `GET /instruments?q=&limit=&offset=` | Searches instruments by ticker or name      | 200, 400                     |
+| `POST /orders`                       | Submits an order or a cash transfer         | 201, 400, 404, 413, 415, 422 |
+| `POST /orders/:orderId/cancel`       | Cancels an order in `NEW`                   | 200, 400, 404, 409           |
+| `GET /health`                        | Checks the database connection              | 200, 503                     |
+| `GET /metrics`                       | Prometheus metrics                          | 200                          |
 
-`POST /orders` requires an `Idempotency-Key` header with a UUID. Details are in [docs/api.md](docs/api.md).
+`POST /orders` requires an `Idempotency-Key` header with a UUID. There is no authentication: the challenge does not ask for it.
 
 ## Events and metrics
 
-Each stored or cancelled order is published to the SNS topic `order-events`. A consumer loop inside the API reads the SQS queue `order-events-queue` and stores events in `analytics.order_events`. Locally, SNS and SQS run on AWS Emulator.
+Each stored or cancelled order is published to an SNS topic. A consumer inside the API reads the SQS queue and stores the events in `analytics.order_events`. Locally, SNS and SQS run on AWS Emulator.
 
-| Tool       | URL                                         | Notes                                        |
-| ---------- | ------------------------------------------- | -------------------------------------------- |
-| Grafana    | http://localhost:3001/d/cocos-api/cocos-api | Dashboard "Cocos API", anonymous read access |
-| Prometheus | http://localhost:9090                       | Scrapes the API every 5 seconds              |
+| Tool       | URL                                         |
+| ---------- | ------------------------------------------- |
+| Grafana    | http://localhost:3001/d/cocos-api/cocos-api |
+| Prometheus | http://localhost:9090                       |
+
+`make load` runs a k6 load test; [screenshots of a run](docs/local-setup.md#what-a-run-looks-like).
 
 ## Tests
 
@@ -67,14 +71,16 @@ Each stored or cancelled order is published to the SNS topic `order-events`. A c
 make test
 ```
 
-Functional tests use Testcontainers, so a Docker daemon must be running. The Makefile reads the socket of the active Docker context (Colima, OrbStack or Docker Desktop) and passes it to Testcontainers. If it fails, see [docs/local-setup.md](docs/local-setup.md).
+Functional tests run against PostgreSQL in Testcontainers, so Docker must be running.
 
 ## Documentation
 
-- [docs/architecture.md](docs/architecture.md): layers, folders (`src/modules/` for features, `src/platform/` for technical pieces), ports, adapters, services
-- [docs/flows.md](docs/flows.md): step-by-step flows, statuses and errors
-- [docs/api.md](docs/api.md): requests and responses
-- [docs/local-setup.md](docs/local-setup.md): Docker, environment variables, troubleshooting
-- [docs/decisions.md](docs/decisions.md): decisions D-01 to D-24, schema changes, limitations
-- `docs/diagrams/cocos-solution.drawio`: diagrams, one page per view
-- [AGENTS.md](AGENTS.md): context for AI agents
+| Document                                     | Content                                                |
+| -------------------------------------------- | ------------------------------------------------------ |
+| [docs/decisions.md](docs/decisions.md)       | Key decisions, schema changes and known limitations    |
+| [docs/architecture.md](docs/architecture.md) | Layers, folders, events and metrics                    |
+| [docs/flows.md](docs/flows.md)               | One diagram per flow, statuses and formulas            |
+| [docs/api.md](docs/api.md)                   | Requests, responses and errors                         |
+| [docs/local-setup.md](docs/local-setup.md)   | Docker services, variables, load test, troubleshooting |
+
+Diagrams are also in `docs/diagrams/cocos-solution.drawio`, with one PNG export per page in the same folder (for example [the hexagonal view](docs/diagrams/hexagonal-architecture.png)). [AGENTS.md](AGENTS.md) holds the context for coding agents, with the skills [run-service](.agents/skills/run-service/SKILL.md), [add-module](.agents/skills/add-module/SKILL.md) and [add-use-case](.agents/skills/add-use-case/SKILL.md).

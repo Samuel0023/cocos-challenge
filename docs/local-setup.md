@@ -1,144 +1,125 @@
 # Local setup
 
-This document explains how to run the service locally: Docker services, environment variables, the AWS Emulator, metrics and common problems.
+How to run the service, what each container does and what to check when something fails.
 
 ## Two ways to run
 
-| Mode        | Commands                        | API runs                     | Events                                         |
-| ----------- | ------------------------------- | ---------------------------- | ---------------------------------------------- |
-| Development | `make services` then `make dev` | On the host, with Node       | `make dev` sets the AWS variables for the host |
-| Full        | `make up`                       | In Docker, with the services | `compose.aws.yaml` sets them for the container |
+| Mode        | Commands                        | The API runs           |
+| ----------- | ------------------------------- | ---------------------- |
+| Development | `make services` then `make dev` | On the host, with Node |
+| Full        | `make up`                       | In Docker              |
 
 ```mermaid
-flowchart TB
-  subgraph DEV["Development: make services + make dev"]
-    direction LR
-    H["API on the host :3000"]
-    subgraph D1["Docker"]
-      P1[("postgres :5432")]
-      V1["valkey :6379"]
-      E1["aws-emulator :9297"]
-      M1["prometheus :9090 · grafana :3001"]
-    end
-    H --> P1
-    H --> V1
-    H -- "https://127.0.0.1:9297" --> E1
-    M1 -- "scrape /metrics" --> H
+flowchart LR
+  subgraph HOST["Host"]
+    API["API :3000<br/>(make dev)"]
   end
-  subgraph FULL["Full Docker: make up"]
-    direction LR
-    subgraph NS["network of aws-emulator"]
-      A2["api :3000"]
-      E2["aws-emulator :9297"]
-    end
-    P2[("postgres")]
-    V2["valkey"]
-    M2["prometheus · grafana"]
-    A2 --> P2
-    A2 --> V2
-    A2 -- "127.0.0.1:9297" --> E2
-    M2 -- "scrape /metrics" --> A2
+  subgraph DOCKER["Docker (make services)"]
+    PG[("postgres :5432")]
+    VK["valkey :6379"]
+    EM["aws-emulator :9297<br/>SNS + SQS"]
+    PR["prometheus :9090"]
+    GR["grafana :3001"]
   end
+  API --> PG
+  API --> VK
+  API --> EM
+  PR -- "scrape /metrics" --> API
+  GR --> PR
 ```
 
-Stop everything with `make down`. See page "Local environment" of `docs/diagrams/cocos-solution.drawio`.
+`make up` runs the same services plus the API in a container. Run `make down` before switching modes: starting one over the other recreates the emulator and wipes its topic and queue.
 
-Run `make down` before switching modes. `make services` uses only `compose.yaml`, so running it while the `make up` stack is up recreates `aws-emulator` and wipes its in-memory topic and queue.
+## Services
 
-## Docker services
+| Service        | Port | Notes                                                                               |
+| -------------- | ---- | ----------------------------------------------------------------------------------- |
+| `postgres`     | 5432 | Loads the challenge seed and the migration. User, password and database are `cocos` |
+| `valkey`       | 6379 | Cache. Optional: without `VALKEY_URL` the API runs with no cache                    |
+| `aws-emulator` | 9297 | SNS and SQS                                                                         |
+| `aws-init`     | none | Creates the topic, the queue and the dead-letter queue, then exits                  |
+| `prometheus`   | 9090 | Scrapes the API every 5 seconds                                                     |
+| `grafana`      | 3001 | Dashboard and Explore, no login needed                                              |
 
-Defined in `compose.yaml`. `make up` adds `compose.aws.yaml` and the `api` profile.
-
-| Service        | Image                                       | Port             | Notes                                                                                                 |
-| -------------- | ------------------------------------------- | ---------------- | ----------------------------------------------------------------------------------------------------- |
-| `postgres`     | `postgres:17-alpine`                        | 5432             | Loads `db/database.sql` and the migration on first start. User, password and database are all `cocos` |
-| `valkey`       | `valkey/valkey:8-alpine`                    | 6379             | Cache                                                                                                 |
-| `aws-emulator` | Built from `docker/aws-emulator/Dockerfile` | 9297 (127.0.0.1) | SNS and SQS. Telemetry off (`-t off`). In `make up` it also publishes the API port 3000               |
-| `aws-init`     | `public.ecr.aws/aws-cli/aws-cli:2.27.50`    | none             | Runs `docker/aws-emulator/init.sh`: creates the topic, queues and subscription, then exits            |
-| `prometheus`   | `prom/prometheus:v3.5.0`                    | 9090             | Scrapes `host.docker.internal:3000/metrics` every 5 seconds (`docker/prometheus/prometheus.yml`)      |
-| `grafana`      | `grafana/grafana:12.1.1`                    | 3001             | Provisioned datasource and dashboard, anonymous `Viewer` access                                       |
-| `api`          | Built from `Dockerfile`                     | 3000             | Profile `api`. Only started by `make up`                                                              |
-
-The seed is loaded only when the container starts with an empty data directory. `make down` removes the containers, so the next start loads the seed again.
+The database has no volume: `make down` and a new start restore the seed.
 
 ## Environment variables
 
-Read and validated in `src/config.ts`. `make dev` also loads a `.env` file if one exists. `.env.example` lists the base variables; `make dev` and `compose.aws.yaml` set the AWS ones.
+Validated in `src/config.ts`. `make dev` sets the AWS ones; a `.env` file is optional.
 
-| Variable                 | Default                                       | Meaning                                                                   |
-| ------------------------ | --------------------------------------------- | ------------------------------------------------------------------------- |
-| `PORT`                   | `3000`                                        | HTTP port                                                                 |
-| `DATABASE_URL`           | `postgres://cocos:cocos@127.0.0.1:5432/cocos` | PostgreSQL connection string                                              |
-| `VALKEY_URL`             | none                                          | Valkey URL. Without it the API runs with no cache                         |
-| `AWS_ENABLED`            | `false`                                       | `true` publishes events to SNS. `false` writes them to the log            |
-| `CONSUMER_ENABLED`       | `false`                                       | `true` starts the SQS consumer loop. Ignored, with a warning, without AWS |
-| `AWS_ENDPOINT_URL`       | none                                          | Emulator endpoint. Unset on AWS                                           |
-| `AWS_REGION`             | `us-east-1`                                   | AWS region                                                                |
-| `ORDER_EVENTS_TOPIC_ARN` | none                                          | SNS topic ARN. Required when `AWS_ENABLED=true`                           |
-| `ORDER_EVENTS_QUEUE_URL` | none                                          | SQS queue URL. Required when `AWS_ENABLED=true`                           |
-| `LOG_LEVEL`              | `info`                                        | `fatal`, `error`, `warn`, `info`, `debug`, `trace` or `silent`            |
+| Variable                 | Default                                       | Meaning                                           |
+| ------------------------ | --------------------------------------------- | ------------------------------------------------- |
+| `PORT`                   | `3000`                                        | HTTP port                                         |
+| `DATABASE_URL`           | `postgres://cocos:cocos@127.0.0.1:5432/cocos` | PostgreSQL connection string                      |
+| `VALKEY_URL`             | none                                          | Valkey URL                                        |
+| `AWS_ENABLED`            | `false`                                       | `true` publishes events to SNS, `false` logs them |
+| `CONSUMER_ENABLED`       | `false`                                       | `true` starts the SQS consumer                    |
+| `AWS_ENDPOINT_URL`       | none                                          | Emulator endpoint. Unset on AWS                   |
+| `AWS_REGION`             | `us-east-1`                                   | AWS region                                        |
+| `ORDER_EVENTS_TOPIC_ARN` | none                                          | Required when `AWS_ENABLED=true`                  |
+| `ORDER_EVENTS_QUEUE_URL` | none                                          | Required when `AWS_ENABLED=true`                  |
+| `LOG_LEVEL`              | `info`                                        | pino level                                        |
 
-Credentials always come from environment variables or the AWS SDK default chain. `make dev` unsets `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN` and `AWS_PROFILE` (the emulator rejects real keys) and points `AWS_SHARED_CREDENTIALS_FILE`, `AWS_CONFIG_FILE` and `NODE_EXTRA_CA_CERTS` at the files the emulator writes to `.aws-emulator/9297/`. `npm run dev` without Make runs the API with `AWS_ENABLED=false`.
+`npm run dev` without Make runs the API with events written to the log.
 
-## Events (SNS/SQS) and AWS Emulator
+## AWS Emulator
 
-| Resource          | Name                 | Notes                                                                        |
-| ----------------- | -------------------- | ---------------------------------------------------------------------------- |
-| SNS topic         | `order-events`       | The API publishes `order.created` and `order.cancelled` after commit         |
-| SQS queue         | `order-events-queue` | Subscribed to the topic. Visibility timeout 30 seconds                       |
-| Dead-letter queue | `order-events-dlq`   | A message that fails 5 receives (for example, not an order event) moves here |
+SNS and SQS run on AWS Emulator, built from `docker/aws-emulator/Dockerfile`. Two things about it shape the setup:
 
-AWS Emulator is the official local emulator AWS published on 11 November 2026. Four traits shape the setup:
+- **It serves HTTPS with a certificate valid only for `localhost`.** That is why the API runs on the host in development, and shares the emulator's network in `make up`.
+- **It creates new credentials on every start and keeps its state in memory.** `aws-init` recreates the resources each time. If the emulator restarts, restart `make dev` too.
 
-- **No published image.** `docker/aws-emulator/Dockerfile` follows the Dockerfile in its documentation and installs the rpm for the build architecture.
-- **HTTPS with a self-signed certificate** that covers only `localhost` and `127.0.0.1`. For this reason `make dev` runs the API on the host against `https://127.0.0.1:9297`, and `make up` puts `api` and `aws-init` in the emulator's network namespace with `network_mode: service:aws-emulator`.
-- **It generates its own credentials and certificate at startup**, in `.aws-emulator/9297/` (a bind mount). The API reads them when it starts, so after the emulator restarts, restart `make dev` too.
-- **State is in memory.** `aws-init` creates the resources on every `make services` and `make up`; the script is safe to run again.
+`make test-aws` checks the whole path: it publishes to SNS and waits for the consumer to store the event.
 
-Check the whole path with `make test-aws` after `make services`: it publishes to SNS and waits for the consumer to store the event. `make test` skips that test.
+## Load test
 
-If publishing to SNS or receiving from SQS fails against the emulator, run the API with `AWS_ENABLED=false` (`npm run dev`). Order delivery is not affected.
+`make load` runs [`test/load/api.js`](../test/load/api.js) with k6 in a container, against an API started with `make dev` or `make up`. It holds 20 virtual users for 30 seconds: 40% portfolio, 30% search and 30% a market buy followed by a sell.
+
+| Threshold                   | Limit        |
+| --------------------------- | ------------ |
+| Failed requests             | below 1%     |
+| p95 of portfolio and search | below 300 ms |
+| p95 of order submission     | below 500 ms |
+
+Change the load with `make load VUS=50 DURATION=2m`. The test writes thousands of orders; `make down` and `make services` restore the seed.
+
+### What a run looks like
+
+One local run on 13 November 2026. It shows what to expect, not a benchmark.
+
+| Measure               | Value                                                         |
+| --------------------- | ------------------------------------------------------------- |
+| Peak request rate     | About 1,000 requests per second, no errors                    |
+| p95 latency per route | `POST /orders` 70.6 ms, portfolio 29.1 ms, search 9.58 ms     |
+| Order events          | All processed. The backlog peaked near 1,000 and drained to 0 |
+
+![Grafana summary and orders panels during the load test](images/load-test-summary-orders.png)
+
+![Grafana HTTP panels during the load test](images/load-test-http.png)
+
+![Grafana order events and runtime panels during the load test](images/load-test-events-runtime.png)
 
 ## Metrics
 
-`GET /metrics` returns Prometheus text. `make services` and `make up` start Prometheus and Grafana.
+| Tool       | URL                                         |
+| ---------- | ------------------------------------------- |
+| Grafana    | http://localhost:3001/d/cocos-api/cocos-api |
+| Explore    | http://localhost:3001/explore               |
+| Prometheus | http://localhost:9090                       |
 
-| Tool       | URL                                         | Notes                                                                   |
-| ---------- | ------------------------------------------- | ----------------------------------------------------------------------- |
-| Grafana    | http://localhost:3001/d/cocos-api/cocos-api | Dashboard "Cocos API" in folder "Cocos". Anonymous read-only (`Viewer`) |
-| Prometheus | http://localhost:9090                       | Job `cocos-api`, target `host.docker.internal:3000`                     |
-
-Prometheus scrapes one target in both modes: in `make dev` the API listens on the host port 3000, and in `make up` the API port is published on the host through `aws-emulator`. `extra_hosts: host.docker.internal:host-gateway` makes the name resolve on Linux. With one target the dashboard never counts the same API twice.
-
-| File                                                      | Content                                                 |
-| --------------------------------------------------------- | ------------------------------------------------------- |
-| `docker/prometheus/prometheus.yml`                        | Scrape configuration                                    |
-| `docker/grafana/provisioning/datasources/prometheus.yaml` | Prometheus as the default datasource (uid `prometheus`) |
-| `docker/grafana/provisioning/dashboards/dashboards.yaml`  | Loads dashboards from `docker/grafana/dashboards/`      |
-| `docker/grafana/dashboards/cocos-api.json`                | The dashboard                                           |
+The dashboard, the datasource and the scrape configuration are under `docker/grafana/` and `docker/prometheus/`.
 
 ## Git hooks
 
-`npm ci` installs the hooks with Husky. Nothing else is needed.
-
-| Hook         | What it runs                                                   |
-| ------------ | -------------------------------------------------------------- |
-| `pre-commit` | ESLint and Prettier on the staged files only (`lint-staged`)   |
-| `commit-msg` | Checks the message follows Conventional Commits (`commitlint`) |
-
-Tests are not in a hook: they need Docker and run in CI.
+`npm ci` installs them with Husky: `pre-commit` runs ESLint and Prettier on the staged files, and `commit-msg` checks Conventional Commits.
 
 ## Troubleshooting
 
-| Symptom                                                        | Cause and fix                                                                                                                                                                                                                                        |
-| -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `make test` cannot find a container runtime                    | Start Docker (Colima, OrbStack or Docker Desktop). Tests need a running daemon                                                                                                                                                                       |
-| Testcontainers fails with Colima or another non-default socket | The Makefile reads the socket of the active context with `docker context inspect` and exports `DOCKER_HOST`. Run tests through `make test`, not `npx vitest`. Check the context with `docker context ls` and switch with `docker context use <name>` |
-| Testcontainers cannot mount the Docker socket                  | The Makefile sets `TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/var/run/docker.sock`. Override both variables in the environment if your setup differs                                                                                                     |
-| `make services` times out                                      | Run `docker compose ps` and `docker compose logs postgres`. Port 5432 or 6379 may be taken by another process                                                                                                                                        |
-| API starts but `/health` returns 503                           | PostgreSQL is not reachable. Check `DATABASE_URL` and that `postgres` is healthy                                                                                                                                                                     |
-| Seed data looks stale                                          | The init scripts run only on an empty data directory. Run `make down` and start again                                                                                                                                                                |
-| Order events stop after the emulator restarted                 | The emulator wrote new credentials and a new certificate. Restart `make dev`                                                                                                                                                                         |
-| Events fail after `make services` ran during `make up`         | `make services` recreated the emulator and wiped its topic and queue. Run `make down`, then `make up`                                                                                                                                                |
-| Grafana panels are empty                                       | Check the target at http://localhost:9090/targets. The API must be running on port 3000                                                                                                                                                              |
-| Prices are not refreshed after a database change               | Cached prices live 60 seconds and search results 5 minutes                                                                                                                                                                                           |
+| Symptom                                                | Fix                                                                                               |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
+| `make test` cannot find a container runtime            | Start Docker. Run tests with `make test`, which passes the active Docker socket to Testcontainers |
+| `make services` times out                              | Port 5432 or 6379 is taken. Check `docker compose ps`                                             |
+| `/health` returns 503                                  | PostgreSQL is not reachable. Check `DATABASE_URL`                                                 |
+| Events stop after the emulator restarted               | Restart `make dev`: the emulator wrote new credentials                                            |
+| Events fail after mixing `make services` and `make up` | `make down`, then start one mode                                                                  |
+| Grafana panels are empty                               | The API must be up on port 3000. Check http://localhost:9090/targets                              |
