@@ -52,6 +52,8 @@ curl -X POST http://localhost:3000/orders \
   -d '{ "userId": 1, "instrumentId": 47, "side": "BUY", "type": "MARKET", "size": 2 }'
 ```
 
+Use a new UUID in `Idempotency-Key` for each new order: sending the same key again returns the first order instead of creating another.
+
 There are two easier ways to explore the rest:
 
 - **Swagger UI** at http://localhost:3000/docs lets you call every endpoint from the browser.

@@ -53,10 +53,11 @@ Strategy: `single-pr`. Forecast: about 200 authored changed Markdown lines (most
 
 ## Acceptance criteria
 
-- `/health`, `/metrics`, Prometheus, Grafana and k6 appear in the Markdown docs only as short mentions, never as sections, tables or diagram nodes.
+- `/health`, `/metrics`, Prometheus, Grafana and k6 appear in the Markdown docs only as short mentions, never as sections, tables or diagram nodes. Exception, asked for by the owner after T1: `docs/local-setup.md` keeps a short "Load test" section with the measured results of one local run (commit `3ae6eeb`), and the README links to it.
 - The drawio has six pages, none of them drawing metrics, Prometheus or Grafana.
 - Every image link in the docs resolves to a file that exists.
-- `make lint` and `make typecheck` pass; `make test` passes or is reported as not run.
+- ESLint and Prettier pass on tracked files and `make typecheck` passes; `make test` passes or is reported as not run. `make lint` itself exits 1 on this checkout because of the untracked `.atl/` folder, which is outside this feature.
+- Native review: lineage `review-f9d0ad2c3b5412b9`, one reliability lens, approved and acknowledged on 2026-11-14 with three non-blocking findings, addressed in the commit that follows it.
 
 ## Progress and evidence
 
