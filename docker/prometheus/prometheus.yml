@@ -1,0 +1,13 @@
+# Scrapes the API every 5s. One target works in both modes:
+# - make dev: the API runs on the host, port 3000.
+# - make up: the API publishes port 3000 on the host through the aws-emulator service.
+# A single target also means the dashboard never counts the same API twice.
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+scrape_configs:
+  - job_name: cocos-api
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['host.docker.internal:3000']

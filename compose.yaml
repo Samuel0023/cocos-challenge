@@ -1,0 +1,116 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: cocos
+      POSTGRES_PASSWORD: cocos
+      POSTGRES_DB: cocos
+    ports:
+      - '5432:5432'
+    volumes:
+      - ./db/database.sql:/docker-entrypoint-initdb.d/01-database.sql:ro
+      - ./db/migrations/001_constraints_and_analytics.sql:/docker-entrypoint-initdb.d/02-migration.sql:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U cocos -d cocos']
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  valkey:
+    image: valkey/valkey:8-alpine
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: ['CMD', 'valkey-cli', 'ping']
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  # AWS's official local emulator (no published image). It writes its per-run credentials,
+  # config and ca.pem to ./.aws-emulator/9297, so the API on the host can read them.
+  aws-emulator:
+    build: ./docker/aws-emulator
+    image: cocos-aws-emulator
+    command: ['-t', 'off']
+    mem_limit: 2g
+    ports:
+      - '127.0.0.1:9297:9297'
+    volumes:
+      - ./.aws-emulator:/home/emulator/.aws/emulator
+
+  # Creates the topic, queue and subscription, then exits. It shares the emulator's network
+  # namespace because the emulator's certificate only covers 127.0.0.1 and localhost.
+  aws-init:
+    image: public.ecr.aws/aws-cli/aws-cli:2.27.50
+    network_mode: service:aws-emulator
+    entrypoint: ['/bin/sh', '/init.sh']
+    volumes:
+      - ./docker/aws-emulator/init.sh:/init.sh:ro
+      - ./.aws-emulator:/emulator:ro
+    depends_on:
+      aws-emulator:
+        condition: service_healthy
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    ports:
+      - '9090:9090'
+    # The API runs on the host in `make dev`; Linux needs this mapping, Docker Desktop and
+    # Colima provide it already.
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:9090/-/ready']
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  # Anonymous users get the Editor role: they land on the provisioned dashboard and can use Explore without logging in.
+  grafana:
+    image: grafana/grafana:12.1.1
+    ports:
+      - '3001:3000'
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: 'true'
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Editor
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/cocos-api.json
+      GF_ANALYTICS_REPORTING_ENABLED: 'false'
+      GF_ANALYTICS_CHECK_FOR_UPDATES: 'false'
+    volumes:
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./docker/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3000/api/health']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  api:
+    profiles: ['api']
+    build: .
+    environment:
+      DATABASE_URL: postgres://cocos:cocos@postgres:5432/cocos
+      VALKEY_URL: redis://valkey:6379
+    ports:
+      - '3000:3000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))",
+        ]
+      interval: 3s
+      timeout: 3s
+      retries: 20

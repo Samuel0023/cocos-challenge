@@ -1,0 +1,237 @@
+# VS Code REST Client file. Start the API first (make services, make dev, or make up).
+# Seed ids: PAMP = 47, METR = 54, BMA = 31, PGR (no market data) = 3, ARS = 66.
+
+@baseUrl = http://localhost:3000
+
+### Health
+GET {{baseUrl}}/health
+
+### Portfolio of user 1 (total 904784.00)
+GET {{baseUrl}}/users/1/portfolio
+
+### Portfolio of a user without orders
+GET {{baseUrl}}/users/2/portfolio
+
+### Portfolio: unknown user (404)
+GET {{baseUrl}}/users/999/portfolio
+
+### Portfolio: invalid user id (400)
+GET {{baseUrl}}/users/abc/portfolio
+
+### Search instruments
+GET {{baseUrl}}/instruments?q=pamp
+
+### Search instruments with pagination
+GET {{baseUrl}}/instruments?q=a&limit=5&offset=5
+
+### Search: missing q (400)
+GET {{baseUrl}}/instruments
+
+### Search: limit out of range (400)
+GET {{baseUrl}}/instruments?q=pamp&limit=500
+
+### MARKET buy by size
+POST {{baseUrl}}/orders
+Idempotency-Key: {{$guid}}
+Content-Type: application/json
+
+{ "userId": 1, "instrumentId": 47, "side": "BUY", "type": "MARKET", "size": 2 }
+
+### MARKET buy by amount
+POST {{baseUrl}}/orders
+Idempotency-Key: {{$guid}}
+Content-Type: application/json
+
+{ "userId": 1, "instrumentId": 47, "side": "BUY", "type": "MARKET", "amount": 5000 }
+
+### MARKET sell
+POST {{baseUrl}}/orders
+Idempotency-Key: {{$guid}}
+Content-Type: application/json
+
+{ "userId": 1, "instrumentId": 47, "side": "SELL", "type": "MARKET", "size": 1 }
+
+### LIMIT buy (stays NEW and reserves pesos)
+POST {{baseUrl}}/orders
+Idempotency-Key: {{$guid}}
+Content-Type: application/json
+
+{ "userId": 1, "instrumentId": 47, "side": "BUY", "type": "LIMIT", "size": 1, "price": 900 }
+
+### LIMIT sell (stays NEW and reserves shares)
+POST {{baseUrl}}/orders
+Idempotency-Key: {{$guid}}
+Content-Type: application/json
+
+{ "userId": 1, "instrumentId": 47, "side": "SELL", "type": "LIMIT", "size": 1, "price": 1000 }
+
+### Rejected: not enough pesos (201, status REJECTED)
+POST {{baseUrl}}/orders
+Idempotency-Key: {{$guid}}
+Content-Type: application/json
+
+{ "userId": 1, "instrumentId": 47, "side": "BUY", "type": "MARKET", "size": 100000 }
+
+### Rejected: not enough shares (201, status REJECTED)
+POST {{baseUrl}}/orders
+Idempotency-Key: {{$guid}}
+Content-Type: application/json
+
+{ "userId": 1, "instrumentId": 47, "side": "SELL", "type": "MARKET", "size": 100000 }
+
+### Cash in
+POST {{baseUrl}}/orders
+Idempotency-Key: {{$guid}}
+Content-Type: application/json
+
+{ "userId": 2, "side": "CASH_IN", "amount": 100000 }
+
+### Cash in with cents (size answers "2777.55")
+POST {{baseUrl}}/orders
+Idempotency-Key: {{$guid}}
+Content-Type: application/json
+
+{ "userId": 2, "side": "CASH_IN", "amount": "2777.55" }
+
+### Transfer sent with size (400: transfers take pesos in amount)
+POST {{baseUrl}}/orders
+Idempotency-Key: {{$guid}}
+Content-Type: application/json
+
+{ "userId": 2, "side": "CASH_IN", "size": 100 }
+
+### Cash out
+POST {{baseUrl}}/orders
+Idempotency-Key: {{$guid}}
+Content-Type: application/json
+
+{ "userId": 2, "side": "CASH_OUT", "amount": 1000 }
+
+### Retry with the same Idempotency-Key (returns the same order)
+# Replace the key with one of your own and send this request twice.
+POST {{baseUrl}}/orders
+Idempotency-Key: 5b3f1c1e-9f0a-4c1d-8a55-2f4e6d7c8b90
+Content-Type: application/json
+
+{ "userId": 3, "side": "CASH_IN", "amount": 500 }
+
+### Same key, different body (422)
+# Send after the previous request.
+POST {{baseUrl}}/orders
+Idempotency-Key: 5b3f1c1e-9f0a-4c1d-8a55-2f4e6d7c8b90
+Content-Type: application/json
+
+{ "userId": 3, "side": "CASH_IN", "amount": 900 }
+
+### Missing Idempotency-Key (400)
+POST {{baseUrl}}/orders
+Content-Type: application/json
+
+{ "userId": 1, "instrumentId": 47, "side": "BUY", "type": "MARKET", "size": 1 }
+
+### Idempotency-Key is not a UUID (400)
+POST {{baseUrl}}/orders
+Idempotency-Key: not-a-uuid
+Content-Type: application/json
+
+{ "userId": 1, "instrumentId": 47, "side": "BUY", "type": "MARKET", "size": 1 }
+
+### Missing fields (400)
+POST {{baseUrl}}/orders
+Idempotency-Key: {{$guid}}
+Content-Type: application/json
+
+{ "side": "BUY" }
+
+### size and amount together (400)
+POST {{baseUrl}}/orders
+Idempotency-Key: {{$guid}}
+Content-Type: application/json
+
+{ "userId": 1, "instrumentId": 47, "side": "BUY", "type": "MARKET", "size": 1, "amount": 1000 }
+
+### Neither size nor amount (400)
+POST {{baseUrl}}/orders
+Idempotency-Key: {{$guid}}
+Content-Type: application/json
+
+{ "userId": 1, "instrumentId": 47, "side": "BUY", "type": "MARKET" }
+
+### Size of zero (400)
+POST {{baseUrl}}/orders
+Idempotency-Key: {{$guid}}
+Content-Type: application/json
+
+{ "userId": 1, "instrumentId": 47, "side": "BUY", "type": "MARKET", "size": 0 }
+
+### Fractional share size (400)
+POST {{baseUrl}}/orders
+Idempotency-Key: {{$guid}}
+Content-Type: application/json
+
+{ "userId": 1, "instrumentId": 47, "side": "BUY", "type": "MARKET", "size": 1.5 }
+
+### LIMIT without price (400)
+POST {{baseUrl}}/orders
+Idempotency-Key: {{$guid}}
+Content-Type: application/json
+
+{ "userId": 1, "instrumentId": 47, "side": "BUY", "type": "LIMIT", "size": 1 }
+
+### MARKET with price (400)
+POST {{baseUrl}}/orders
+Idempotency-Key: {{$guid}}
+Content-Type: application/json
+
+{ "userId": 1, "instrumentId": 47, "side": "BUY", "type": "MARKET", "size": 1, "price": 900 }
+
+### Unknown user (404)
+POST {{baseUrl}}/orders
+Idempotency-Key: {{$guid}}
+Content-Type: application/json
+
+{ "userId": 999, "instrumentId": 47, "side": "BUY", "type": "MARKET", "size": 1 }
+
+### Unknown instrument (404)
+POST {{baseUrl}}/orders
+Idempotency-Key: {{$guid}}
+Content-Type: application/json
+
+{ "userId": 1, "instrumentId": 9999, "side": "BUY", "type": "MARKET", "size": 1 }
+
+### BUY on the ARS instrument (422)
+POST {{baseUrl}}/orders
+Idempotency-Key: {{$guid}}
+Content-Type: application/json
+
+{ "userId": 1, "instrumentId": 66, "side": "BUY", "type": "MARKET", "size": 1 }
+
+### MARKET on an instrument without market data (422)
+POST {{baseUrl}}/orders
+Idempotency-Key: {{$guid}}
+Content-Type: application/json
+
+{ "userId": 1, "instrumentId": 3, "side": "BUY", "type": "MARKET", "size": 1 }
+
+### Amount too small for one share (422)
+POST {{baseUrl}}/orders
+Idempotency-Key: {{$guid}}
+Content-Type: application/json
+
+{ "userId": 1, "instrumentId": 47, "side": "BUY", "type": "MARKET", "amount": 100 }
+
+### Cancel an order (use the id of a NEW order)
+POST {{baseUrl}}/orders/1/cancel
+
+### Cancel: unknown order (404)
+POST {{baseUrl}}/orders/999999/cancel
+
+### Cancel: invalid id (400)
+POST {{baseUrl}}/orders/abc/cancel
+
+### Cancel an order that is not NEW (409)
+# Order 1 of the seed is FILLED.
+POST {{baseUrl}}/orders/1/cancel
+
+### Prometheus metrics (orders_total, request latency, consumer metrics)
+GET {{baseUrl}}/metrics
