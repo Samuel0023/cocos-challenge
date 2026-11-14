@@ -1,7 +1,7 @@
 import type { OrderMetrics } from '../../../platform/observability/metrics.ts';
 import { Money } from '../../../platform/money.ts';
 import type { EventPublisher } from '../../order-events/application/event-publisher.ts';
-import { notFound, unprocessable } from '../../../platform/http/errors.ts';
+import { notFound, unprocessable } from '../../../platform/errors.ts';
 import type { Logger } from '../../../platform/logger.ts';
 import type { Clock } from '../../../platform/clock.ts';
 import { hasFundsFor } from '../domain/funds-policy.ts';
@@ -20,7 +20,7 @@ import { countOrder, publishOrderEvent } from './order-events.ts';
 import {
   DuplicateClientOrderIdError,
   type Instrument,
-  type InstrumentRepository,
+  type OrderInstrumentRepository,
   type OrderRepository,
   type PriceSource,
   type Transaction,
@@ -43,7 +43,7 @@ export interface SubmitOrderCommand {
 }
 
 export interface SubmitOrderDeps {
-  instruments: InstrumentRepository;
+  instruments: OrderInstrumentRepository;
   prices: PriceSource;
   /** Reads outside any transaction, used after a duplicate-key race. */
   orders: OrderRepository;
@@ -107,13 +107,16 @@ export class SubmitOrder {
 
     const existing = await tx.orders.findByClientOrderId(order.userId, key);
     if (existing) return { order: replay(existing, order), created: false };
+    // After the key lookup: a retry of an order sized by amount must not fail because the price
+    // moved. Throwing here rolls the transaction back, so a first request still stores nothing.
+    assertTradableSize(order);
 
     const available =
       order.side === 'CASH_IN'
         ? { cash: Money.zero, shares: 0 }
         : {
-            cash: await tx.accounts.availableCash(order.userId),
-            shares: await tx.accounts.availableShares(order.userId, order.instrumentId),
+            cash: await tx.funds.availableCash(order.userId),
+            shares: await tx.funds.availableShares(order.userId, order.instrumentId),
           };
     const status = initialStatus(order.type, hasFundsFor(order, available));
 
@@ -171,6 +174,10 @@ export class SubmitOrder {
     }
     const close = await this.deps.prices.latestClose(instrument.id);
     if (!close) throw unprocessable(`Instrument ${instrument.ticker} has no market data`);
+    // A close of zero or below is no price to trade at, nor to size an order by amount.
+    if (close.cents <= 0n) {
+      throw unprocessable(`Instrument ${instrument.ticker} has no market price to trade at`);
+    }
     return close;
   }
 }
@@ -184,10 +191,15 @@ function resolveSize(command: SubmitOrderCommand, price: Money): SizedSide {
     return { side, size: pesos };
   }
   if (size instanceof Money) throw new Error('Share size in pesos reached the use case');
-  const shares = size ?? sizeFromAmount(amount ?? Money.zero, price);
-  if (shares === 0) throw unprocessable('Amount is not enough for one unit at the order price');
-  if (shares > MAX_ORDER_SIZE) throw unprocessable('Order size is too large');
-  return { side, size: shares };
+  // A size derived from an amount is checked by assertTradableSize, after the idempotency lookup.
+  return { side, size: size ?? sizeFromAmount(amount ?? Money.zero, price) };
+}
+
+/** 422 when an amount covers no whole share, or more shares than an order can hold. */
+function assertTradableSize(order: SizedSide): void {
+  if (isTransfer(order.side) || typeof order.size !== 'number') return;
+  if (order.size === 0) throw unprocessable('Amount is not enough for one unit at the order price');
+  if (order.size > MAX_ORDER_SIZE) throw unprocessable('Order size is too large');
 }
 
 /** The stored order when the retry asks for the same thing; 422 otherwise. */

@@ -1,6 +1,6 @@
 import type { OrderMetrics } from '../../../platform/observability/metrics.ts';
 import type { EventPublisher } from '../../order-events/application/event-publisher.ts';
-import { conflict, notFound } from '../../../platform/http/errors.ts';
+import { conflict, notFound } from '../../../platform/errors.ts';
 import type { Logger } from '../../../platform/logger.ts';
 import type { Clock } from '../../../platform/clock.ts';
 import type { Order } from '../domain/order.ts';

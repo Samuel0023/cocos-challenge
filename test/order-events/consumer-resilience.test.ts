@@ -2,11 +2,11 @@ import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { PgOrderEventStore } from '../../src/modules/order-events/infra/pg-order-event-store.ts';
 import { RecordOrderEvent } from '../../src/modules/order-events/application/record-order-event.ts';
-import {
-  SqsOrderEventConsumer,
-  type OrderEventQueue,
-  type QueueMessage,
-} from '../../src/modules/order-events/infra/sqs-order-event-consumer.ts';
+import { OrderEventConsumer } from '../../src/modules/order-events/application/order-event-consumer.ts';
+import type {
+  OrderEventQueue,
+  QueueMessage,
+} from '../../src/modules/order-events/application/order-event-queue.ts';
 import { silentLogger } from '../../src/platform/logger.ts';
 import { createTestApp, type TestApp } from '../support/test-app.ts';
 
@@ -84,7 +84,7 @@ describe('order event consumer under failures', () => {
     const q = new Q();
     const id = randomUUID();
     q.batches.push([{ body: ev(id), receiptHandle: 'a' }], [{ body: ev(id), receiptHandle: 'b' }]);
-    const c = new SqsOrderEventConsumer({
+    const c = new OrderEventConsumer({
       queue: q,
       recordOrderEvent: new RecordOrderEvent(new PgOrderEventStore(ctx.pool)),
       logger: silentLogger,
@@ -108,7 +108,7 @@ describe('order event consumer under failures', () => {
       },
     };
     q.batches.push([{ body: ev(id), receiptHandle: 'x' }]);
-    const c = new SqsOrderEventConsumer({
+    const c = new OrderEventConsumer({
       queue: q,
       recordOrderEvent: new RecordOrderEvent(flaky),
       logger: silentLogger,
@@ -130,7 +130,7 @@ describe('order event consumer under failures', () => {
     q.deleteFails = true;
     const id = randomUUID();
     q.batches.push([{ body: ev(id), receiptHandle: 'z' }]);
-    const c = new SqsOrderEventConsumer({
+    const c = new OrderEventConsumer({
       queue: q,
       recordOrderEvent: new RecordOrderEvent(new PgOrderEventStore(ctx.pool)),
       logger: silentLogger,
@@ -145,7 +145,7 @@ describe('order event consumer under failures', () => {
   it('stop() is prompt during the error backoff and leaves no unhandled rejection', async () => {
     const q = new Q();
     q.batches.push(new Error('boom'));
-    const c = new SqsOrderEventConsumer({
+    const c = new OrderEventConsumer({
       queue: q,
       recordOrderEvent: new RecordOrderEvent(new PgOrderEventStore(ctx.pool)),
       logger: silentLogger,

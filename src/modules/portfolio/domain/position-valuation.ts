@@ -1,4 +1,4 @@
-import type { Quote } from '../../marketdata/application/market-data-repository.ts';
+import type { Quote } from '../../marketdata/domain/quote.ts';
 import { Money } from '../../../platform/money.ts';
 
 /** Net shares of one instrument from FILLED orders, with the totals of its FILLED buys. */

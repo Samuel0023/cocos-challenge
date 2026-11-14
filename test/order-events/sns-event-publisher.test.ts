@@ -1,5 +1,6 @@
 import type { PublishCommand } from '@aws-sdk/client-sns';
-import { describe, expect, it } from 'vitest';
+import { pino } from 'pino';
+import { describe, expect, it, vi } from 'vitest';
 import type { OrderEvent } from '../../src/modules/order-events/domain/order-event.ts';
 import { SnsEventPublisher } from '../../src/modules/order-events/infra/sns-event-publisher.ts';
 import { silentLogger } from '../../src/platform/logger.ts';
@@ -44,5 +45,36 @@ describe('SnsEventPublisher', () => {
     await expect(
       new SnsEventPublisher(client, TOPIC, silentLogger).publish(event),
     ).resolves.toBeUndefined();
+  });
+
+  it('gives up on a publish that never answers and logs a warning', async () => {
+    const logger = pino({ level: 'silent' });
+    const warn = vi.spyOn(logger, 'warn');
+    const client = { send: () => new Promise<never>(() => {}) };
+    const publisher = new SnsEventPublisher(client, TOPIC, logger, { timeoutMs: 50 });
+
+    const started = performance.now();
+    await expect(publisher.publish(event)).resolves.toBeUndefined();
+
+    expect(performance.now() - started).toBeLessThan(1_000);
+    expect(warn).toHaveBeenCalledWith(
+      expect.objectContaining({ eventId: event.eventId, timeoutMs: 50 }),
+      'order event publish timed out',
+    );
+  });
+
+  it('aborts the request it gives up on', async () => {
+    let received: AbortSignal | undefined;
+    const client = {
+      send: (_command: PublishCommand, options?: { abortSignal?: AbortSignal }) =>
+        new Promise((_resolve, reject) => {
+          received = options?.abortSignal;
+          received?.addEventListener('abort', () => reject(received?.reason));
+        }),
+    };
+
+    await new SnsEventPublisher(client, TOPIC, silentLogger, { timeoutMs: 50 }).publish(event);
+
+    expect(received?.aborted).toBe(true);
   });
 });

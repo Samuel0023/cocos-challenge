@@ -1,7 +1,7 @@
 import type { Queryable } from '../../../platform/postgres/db.ts';
 import { Money } from '../../../platform/money.ts';
 import type { Holding } from '../domain/position-valuation.ts';
-import type { AccountReader, CashSummary } from '../application/account-reader.ts';
+import type { CashSummary, PortfolioReader } from '../application/portfolio-reader.ts';
 
 interface CashRow {
   balance: string;
@@ -17,7 +17,7 @@ interface HoldingRow {
   buycost: string;
 }
 
-export class PgAccountReader implements AccountReader {
+export class PgPortfolioReader implements PortfolioReader {
   private readonly db: Queryable;
 
   constructor(db: Queryable) {

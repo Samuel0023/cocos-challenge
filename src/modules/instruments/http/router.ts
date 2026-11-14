@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import type { AppDeps } from '../../../app.ts';
 import { SearchInstruments } from '../application/search-instruments.ts';
-import { PgInstrumentRepository } from '../infra/pg-instrument-repository.ts';
+import { PgInstrumentSearchRepository } from '../infra/pg-instrument-search-repository.ts';
 
 const searchQuery = z.object({
   q: z.string().trim().min(1),
@@ -13,7 +13,7 @@ const searchQuery = z.object({
 export function createInstrumentsRouter(deps: AppDeps): Router {
   const router = Router();
   const searchInstruments = new SearchInstruments(
-    new PgInstrumentRepository(deps.pool),
+    new PgInstrumentSearchRepository(deps.pool),
     deps.cache,
   );
 

@@ -6,13 +6,13 @@ import { loadConfig, type Config } from './config.ts';
 import { PrometheusMetrics } from './platform/observability/prometheus-metrics.ts';
 import { PgOrderEventStore } from './modules/order-events/infra/pg-order-event-store.ts';
 import { RecordOrderEvent } from './modules/order-events/application/record-order-event.ts';
-import {
-  SqsOrderEventConsumer,
-  SqsOrderEventQueue,
-} from './modules/order-events/infra/sqs-order-event-consumer.ts';
+import { OrderEventConsumer } from './modules/order-events/application/order-event-consumer.ts';
+import { SqsOrderEventQueue } from './modules/order-events/infra/sqs-order-event-queue.ts';
 import { LogEventPublisher } from './modules/order-events/infra/log-event-publisher.ts';
 import type { EventPublisher } from './modules/order-events/application/event-publisher.ts';
 import { SnsEventPublisher } from './modules/order-events/infra/sns-event-publisher.ts';
+import { CachedMarketDataRepository } from './modules/marketdata/infra/cached-market-data-repository.ts';
+import { PgMarketDataRepository } from './modules/marketdata/infra/pg-market-data-repository.ts';
 import { NoCache } from './platform/cache/no-cache.ts';
 import { ValkeyCache } from './platform/cache/valkey-cache.ts';
 import { createPool } from './platform/postgres/db.ts';
@@ -31,15 +31,16 @@ function readConfig(): Config {
 
 const config = readConfig();
 const logger = createLogger(config.LOG_LEVEL);
-const pool = createPool(config.DATABASE_URL);
+const pool = createPool(config.DATABASE_URL, logger);
 const metrics = new PrometheusMetrics();
 const valkey = config.VALKEY_URL ? new ValkeyCache(config.VALKEY_URL, logger) : undefined;
+const cache = valkey ?? new NoCache();
 
 // Credentials come from the SDK's default chain (environment or shared files).
 const awsClientConfig = { region: config.AWS_REGION, endpoint: config.AWS_ENDPOINT_URL };
 
 let eventPublisher: EventPublisher = new LogEventPublisher(logger);
-let consumer: SqsOrderEventConsumer | undefined;
+let consumer: OrderEventConsumer | undefined;
 
 if (config.AWS_ENABLED) {
   // loadConfig guarantees both values when AWS_ENABLED=true.
@@ -47,7 +48,7 @@ if (config.AWS_ENABLED) {
   const queueUrl = config.ORDER_EVENTS_QUEUE_URL!;
   eventPublisher = new SnsEventPublisher(new SNSClient(awsClientConfig), topicArn, logger);
   if (config.CONSUMER_ENABLED) {
-    consumer = new SqsOrderEventConsumer({
+    consumer = new OrderEventConsumer({
       queue: new SqsOrderEventQueue(new SQSClient(awsClientConfig), queueUrl),
       recordOrderEvent: new RecordOrderEvent(new PgOrderEventStore(pool)),
       logger,
@@ -60,7 +61,8 @@ if (config.AWS_ENABLED) {
 
 const app = buildApp({
   pool,
-  cache: valkey ?? new NoCache(),
+  cache,
+  marketData: new CachedMarketDataRepository(new PgMarketDataRepository(pool), cache),
   eventPublisher,
   clock: systemClock,
   logger,

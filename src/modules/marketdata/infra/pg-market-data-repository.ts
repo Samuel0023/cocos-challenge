@@ -1,5 +1,6 @@
 import type { Queryable } from '../../../platform/postgres/db.ts';
-import type { MarketDataRepository, Quote } from '../application/market-data-repository.ts';
+import type { MarketDataRepository } from '../application/market-data-repository.ts';
+import type { Quote } from '../domain/quote.ts';
 
 interface Row {
   instrumentid: number;

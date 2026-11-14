@@ -1,9 +1,9 @@
 import type { Queryable } from '../../../platform/postgres/db.ts';
 import type {
-  InstrumentRepository,
+  InstrumentSearchRepository,
   InstrumentSearchPage,
   InstrumentSummary,
-} from '../application/instrument-repository.ts';
+} from '../application/instrument-search-repository.ts';
 
 interface Row extends InstrumentSummary {
   total: string;
@@ -11,7 +11,7 @@ interface Row extends InstrumentSummary {
 
 const escapeLike = (text: string) => text.replace(/[\\%_]/g, '\\$&');
 
-export class PgInstrumentRepository implements InstrumentRepository {
+export class PgInstrumentSearchRepository implements InstrumentSearchRepository {
   private readonly db: Queryable;
 
   constructor(db: Queryable) {

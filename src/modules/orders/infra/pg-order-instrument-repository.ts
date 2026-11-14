@@ -1,7 +1,7 @@
 import type { Queryable } from '../../../platform/postgres/db.ts';
-import type { Instrument, InstrumentRepository } from '../application/ports.ts';
+import type { Instrument, OrderInstrumentRepository } from '../application/ports.ts';
 
-export class PgOrderInstrumentRepository implements InstrumentRepository {
+export class PgOrderInstrumentRepository implements OrderInstrumentRepository {
   private readonly db: Queryable;
 
   constructor(db: Queryable) {

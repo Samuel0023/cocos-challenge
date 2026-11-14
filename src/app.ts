@@ -8,6 +8,7 @@ import type { AppMetrics } from './platform/observability/metrics.ts';
 import { createOrdersRouter } from './modules/orders/http/router.ts';
 import { createPortfolioRouter } from './modules/portfolio/http/router.ts';
 import type { EventPublisher } from './modules/order-events/application/event-publisher.ts';
+import type { MarketDataRepository } from './modules/marketdata/application/market-data-repository.ts';
 import { errorMiddleware, routeNotFound } from './platform/http/error-middleware.ts';
 import type { Logger } from './platform/logger.ts';
 import type { Cache } from './platform/cache/cache.ts';
@@ -17,6 +18,8 @@ import type { Clock } from './platform/clock.ts';
 export interface AppDeps {
   pool: pg.Pool;
   cache: Cache;
+  /** Latest quotes, shared by orders (MARKET price) and portfolio (valuation). */
+  marketData: MarketDataRepository;
   eventPublisher: EventPublisher;
   clock: Clock;
   logger: Logger;

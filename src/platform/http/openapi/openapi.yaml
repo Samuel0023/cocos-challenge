@@ -298,11 +298,30 @@ paths:
                 $ref: '#/components/schemas/Error'
               example:
                 error: { code: NOT_FOUND, message: Instrument 9999 not found }
+        '413':
+          description: The body is larger than 100 kB.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: { code: PAYLOAD_TOO_LARGE, message: Request body is too large }
+        '415':
+          description: The body is in a charset or content encoding the API does not read.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: { code: UNSUPPORTED_MEDIA_TYPE, message: Unsupported request body encoding }
         '422':
           description: |
             `BUY` or `SELL` on the ARS instrument, a transfer on another instrument, `MARKET` on an instrument
-            without market data, an `amount` that does not cover one unit, a size above 2147483647, or an
-            `Idempotency-Key` reused with a different request.
+            without market data or whose latest close is 0, an `amount` that does not cover one unit (checked
+            after the `Idempotency-Key` lookup, so a retry of a stored order still answers 201), an `amount`
+            that buys more than 2147483647 shares (a `size` above that is 400), or an `Idempotency-Key` reused
+            with a different request. A `MARKET` order sent by `amount` is matched by user, instrument, side
+            and type only, so a retry with another `amount` answers the stored order.
           content:
             application/json:
               schema:
@@ -335,10 +354,10 @@ paths:
         - name: orderId
           in: path
           required: true
-          description: Digits only. A value that matches no order (0, or above 2147483647) answers 404.
+          description: Positive integer. A value above 2147483647 cannot exist and answers 404.
           schema:
             type: string
-            pattern: '^\d+$'
+            pattern: '^[1-9]\d*$'
           example: '1234'
       responses:
         '200':
@@ -453,7 +472,14 @@ components:
           properties:
             code:
               type: string
-              enum: [BAD_REQUEST, NOT_FOUND, CONFLICT, UNPROCESSABLE_ENTITY, INTERNAL_ERROR]
+              enum:
+                - BAD_REQUEST
+                - NOT_FOUND
+                - CONFLICT
+                - PAYLOAD_TOO_LARGE
+                - UNSUPPORTED_MEDIA_TYPE
+                - UNPROCESSABLE_ENTITY
+                - INTERNAL_ERROR
             message:
               type: string
             details:

@@ -9,7 +9,7 @@ export interface CashSummary {
 }
 
 /** Read side of a user's account, aggregated from the orders table. */
-export interface AccountReader {
+export interface PortfolioReader {
   userExists(userId: number): Promise<boolean>;
   getCash(userId: number): Promise<CashSummary>;
   /** One entry per instrument with FILLED BUY/SELL orders, cash instruments excluded. */

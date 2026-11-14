@@ -1,4 +1,5 @@
 import pg from 'pg';
+import type { Logger } from '../logger.ts';
 
 // NUMERIC and DATE come back as strings: money never goes through binary floating point.
 pg.types.setTypeParser(pg.types.builtins.DATE, (value) => value);
@@ -6,8 +7,15 @@ pg.types.setTypeParser(pg.types.builtins.DATE, (value) => value);
 /** Anything that can run a query: the pool or a client inside a transaction. */
 export type Queryable = Pick<pg.Pool, 'query'>;
 
-export function createPool(connectionString: string): pg.Pool {
-  return new pg.Pool({ connectionString });
+/**
+ * The pool emits 'error' when an idle connection fails (PostgreSQL restarted, a backend was
+ * terminated). Without a listener Node throws it and the process dies; the pool has already
+ * discarded that connection, so logging it is all there is to do.
+ */
+export function createPool(connectionString: string, logger?: Pick<Logger, 'error'>): pg.Pool {
+  const pool = new pg.Pool({ connectionString });
+  pool.on('error', (error) => logger?.error({ err: error }, 'idle postgres connection failed'));
+  return pool;
 }
 
 /**

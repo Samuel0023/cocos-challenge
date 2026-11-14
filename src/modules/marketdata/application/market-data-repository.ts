@@ -1,8 +1,4 @@
-export interface Quote {
-  close: string;
-  previousClose: string;
-  date: string;
-}
+import type { Quote } from '../domain/quote.ts';
 
 export interface MarketDataRepository {
   /**

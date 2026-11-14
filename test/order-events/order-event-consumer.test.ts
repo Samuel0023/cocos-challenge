@@ -1,11 +1,11 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { PgOrderEventStore } from '../../src/modules/order-events/infra/pg-order-event-store.ts';
 import { RecordOrderEvent } from '../../src/modules/order-events/application/record-order-event.ts';
-import {
-  SqsOrderEventConsumer,
-  type OrderEventQueue,
-  type QueueMessage,
-} from '../../src/modules/order-events/infra/sqs-order-event-consumer.ts';
+import { OrderEventConsumer } from '../../src/modules/order-events/application/order-event-consumer.ts';
+import type {
+  OrderEventQueue,
+  QueueMessage,
+} from '../../src/modules/order-events/application/order-event-queue.ts';
 import type { OrderEventMetrics } from '../../src/platform/observability/metrics.ts';
 import type { OrderEvent } from '../../src/modules/order-events/domain/order-event.ts';
 import { silentLogger } from '../../src/platform/logger.ts';
@@ -62,7 +62,7 @@ async function until(condition: () => boolean | Promise<boolean>, timeoutMs = 5_
   }
 }
 
-describe('SqsOrderEventConsumer', () => {
+describe('OrderEventConsumer', () => {
   let ctx: TestApp;
   let record: RecordOrderEvent;
 
@@ -74,7 +74,7 @@ describe('SqsOrderEventConsumer', () => {
   afterAll(() => ctx.close());
 
   const consumerFor = (queue: FakeQueue) =>
-    new SqsOrderEventConsumer({
+    new OrderEventConsumer({
       queue,
       recordOrderEvent: record,
       logger: silentLogger,
@@ -176,7 +176,7 @@ describe('SqsOrderEventConsumer', () => {
       { body: 'not an order event', receiptHandle: 'bad' },
       { body: JSON.stringify(orderEvent(id)), receiptHandle: 'good' },
     ]);
-    const consumer = new SqsOrderEventConsumer({
+    const consumer = new OrderEventConsumer({
       queue: backlog,
       recordOrderEvent: record,
       logger: silentLogger,

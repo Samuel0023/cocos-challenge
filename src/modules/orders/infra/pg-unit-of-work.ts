@@ -1,7 +1,7 @@
 import type pg from 'pg';
 import { withTransaction } from '../../../platform/postgres/db.ts';
 import type { Transaction, UnitOfWork } from '../application/ports.ts';
-import { PgAccountReader } from './pg-account-reader.ts';
+import { PgFundsReader } from './pg-funds-reader.ts';
 import { PgOrderRepository } from './pg-order-repository.ts';
 
 export class PgUnitOfWork implements UnitOfWork {
@@ -22,7 +22,7 @@ export class PgUnitOfWork implements UnitOfWork {
           return rowCount === 1;
         },
         orders: new PgOrderRepository(db),
-        accounts: new PgAccountReader(db),
+        funds: new PgFundsReader(db),
       }),
     );
   }

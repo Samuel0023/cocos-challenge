@@ -12,7 +12,7 @@ export interface InstrumentSearchPage {
   total: number;
 }
 
-export interface InstrumentRepository {
+export interface InstrumentSearchRepository {
   /** `text` is already trimmed and lowercased. */
   search(text: string, limit: number, offset: number): Promise<InstrumentSearchPage>;
 }

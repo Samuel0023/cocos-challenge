@@ -1,5 +1,5 @@
 import type { RequestHandler } from 'express';
-import { badRequest } from '../../../platform/http/errors.ts';
+import { badRequest } from '../../../platform/errors.ts';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

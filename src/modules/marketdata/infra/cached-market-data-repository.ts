@@ -1,5 +1,6 @@
 import type { Cache } from '../../../platform/cache/cache.ts';
-import type { MarketDataRepository, Quote } from '../application/market-data-repository.ts';
+import type { MarketDataRepository } from '../application/market-data-repository.ts';
+import type { Quote } from '../domain/quote.ts';
 
 /** Nothing loads market data in this challenge, so the TTL is the only expiry rule (D-19). */
 export const QUOTE_TTL_SECONDS = 60;

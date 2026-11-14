@@ -41,8 +41,15 @@ export class Money {
     return this.cents > other.cents;
   }
 
-  /** How many whole units this amount buys at `price` (order by amount, D-06). */
+  /**
+   * How many whole units this amount buys at `price` (order by amount, D-06), rounded down.
+   * Throws a RangeError when `price` is zero or below: there is no unit count at such a price,
+   * so callers must refuse that price first.
+   */
   wholeUnitsAt(price: Money): number {
+    if (price.cents <= 0n) {
+      throw new RangeError(`Price must be greater than zero, got ${price.toString()}`);
+    }
     return Number(this.cents / price.cents);
   }
 

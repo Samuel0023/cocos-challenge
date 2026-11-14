@@ -1,24 +1,28 @@
 import { Money } from '../../../platform/money.ts';
 import type { Queryable } from '../../../platform/postgres/db.ts';
-import type { AccountReader } from '../application/ports.ts';
+import type { FundsReader } from '../application/ports.ts';
 
-export class PgAccountReader implements AccountReader {
+export class PgFundsReader implements FundsReader {
   private readonly db: Queryable;
 
   constructor(db: Queryable) {
     this.db = db;
   }
 
-  /** FILLED movements minus the cash reserved by NEW LIMIT BUYs, computed in NUMERIC. */
+  /**
+   * FILLED movements minus the cash reserved by NEW LIMIT BUYs, computed in NUMERIC.
+   * ROUND, not a cast to the `size` column type: a balance is a sum of transfers, so it can
+   * exceed what one transfer holds, and a cast to NUMERIC(20, 2) would overflow.
+   */
   async availableCash(userId: number): Promise<Money> {
     const { rows } = await this.db.query<{ cash: string }>(
-      `SELECT COALESCE(SUM(
+      `SELECT ROUND(COALESCE(SUM(
                 CASE
                   WHEN status = 'FILLED' AND side IN ('CASH_IN', 'SELL') THEN size * price
                   WHEN status = 'FILLED' AND side IN ('CASH_OUT', 'BUY') THEN -size * price
                   WHEN status = 'NEW' AND type = 'LIMIT' AND side = 'BUY' THEN -size * price
                   ELSE 0
-                END), 0)::numeric(20, 2)::text AS cash
+                END), 0), 2)::text AS cash
          FROM orders
         WHERE userid = $1`,
       [userId],

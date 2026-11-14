@@ -74,16 +74,23 @@ describe('POST /orders/:orderId/cancel', () => {
     expect((await orderRow(filled.body.id))?.status).toBe('FILLED');
   });
 
-  it('answers 404 for an unknown order and 400 for a non-numeric id', async () => {
+  it.each(['999999', '99999999999'])('answers 404 for unknown order %s', async (orderId) => {
     const before = await countOrders();
 
-    const missing = await cancel(999999);
-    const invalid = await cancel('abc');
+    const res = await cancel(orderId);
 
-    expect(missing.status).toBe(404);
-    expect(missing.body.error.code).toBe('NOT_FOUND');
-    expect(invalid.status).toBe(400);
-    expect(invalid.body.error.code).toBe('BAD_REQUEST');
+    expect(res.status).toBe(404);
+    expect(res.body.error.code).toBe('NOT_FOUND');
+    expect(await countOrders()).toBe(before);
+  });
+
+  it.each(['abc', '0', '-1', '1.5'])('answers 400 for order id "%s"', async (orderId) => {
+    const before = await countOrders();
+
+    const res = await cancel(orderId);
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe('BAD_REQUEST');
     expect(await countOrders()).toBe(before);
   });
 });

@@ -3,6 +3,8 @@ import pg from 'pg';
 import { inject } from 'vitest';
 import { buildApp, type AppDeps } from '../../src/app.ts';
 import { PrometheusMetrics } from '../../src/platform/observability/prometheus-metrics.ts';
+import { CachedMarketDataRepository } from '../../src/modules/marketdata/infra/cached-market-data-repository.ts';
+import { PgMarketDataRepository } from '../../src/modules/marketdata/infra/pg-market-data-repository.ts';
 import { InMemoryEventPublisher } from '../../src/modules/order-events/infra/in-memory-event-publisher.ts';
 import { InMemoryCache } from '../../src/platform/cache/in-memory-cache.ts';
 import { createPool } from '../../src/platform/postgres/db.ts';
@@ -35,6 +37,11 @@ export async function createTestApp(overrides: Partial<AppDeps> = {}): Promise<T
   const app = buildApp({
     pool,
     cache,
+    // The same cached-over-PostgreSQL repository as main.ts, so tests see the quote:<id> entries.
+    marketData: new CachedMarketDataRepository(
+      new PgMarketDataRepository(pool),
+      overrides.cache ?? cache,
+    ),
     eventPublisher: events,
     clock: systemClock,
     logger: silentLogger,

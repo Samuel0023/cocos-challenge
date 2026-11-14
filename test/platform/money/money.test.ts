@@ -29,6 +29,17 @@ describe('Money', () => {
     expect(Money.parse('925.84').wholeUnitsAt(Money.parse('925.85'))).toBe(0);
   });
 
+  it('refuses to count units at a price of zero or below', () => {
+    const amount = Money.parse('1000');
+
+    expect(() => amount.wholeUnitsAt(Money.zero)).toThrow(
+      new RangeError('Price must be greater than zero, got 0.00'),
+    );
+    expect(() => amount.wholeUnitsAt(Money.parse('-1'))).toThrow(
+      new RangeError('Price must be greater than zero, got -1.00'),
+    );
+  });
+
   it('computes a percentage change rounded half up to two decimals', () => {
     expect(Money.parse('925.85').percentChangeFrom(Money.parse('921.80'))).toBe('0.44');
     expect(Money.parse('90').percentChangeFrom(Money.parse('100'))).toBe('-10.00');

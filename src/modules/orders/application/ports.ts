@@ -20,7 +20,7 @@ export interface OrderRepository {
 }
 
 /** Balances read inside the transaction that holds the user lock. */
-export interface AccountReader {
+export interface FundsReader {
   availableCash(userId: number): Promise<Money>;
   availableShares(userId: number, instrumentId: number): Promise<number>;
 }
@@ -31,7 +31,7 @@ export interface Instrument {
   type: string;
 }
 
-export interface InstrumentRepository {
+export interface OrderInstrumentRepository {
   findById(id: number): Promise<Instrument | null>;
   /** The ARS instrument that transfers move. */
   findCash(): Promise<Instrument>;
@@ -46,7 +46,7 @@ export interface Transaction {
   /** Takes the row lock on the user (SELECT ... FOR UPDATE); false when the user does not exist. */
   lockUser(userId: number): Promise<boolean>;
   orders: OrderRepository;
-  accounts: AccountReader;
+  funds: FundsReader;
 }
 
 /** Runs work in one database transaction; the lock taken by lockUser lasts until it ends. */

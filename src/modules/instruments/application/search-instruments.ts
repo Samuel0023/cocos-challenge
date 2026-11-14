@@ -1,5 +1,8 @@
 import type { Cache } from '../../../platform/cache/cache.ts';
-import type { InstrumentRepository, InstrumentSummary } from './instrument-repository.ts';
+import type {
+  InstrumentSearchRepository,
+  InstrumentSummary,
+} from './instrument-search-repository.ts';
 
 const CACHE_TTL_SECONDS = 300;
 
@@ -11,10 +14,10 @@ export interface SearchInstrumentsResult {
 }
 
 export class SearchInstruments {
-  private readonly repository: InstrumentRepository;
+  private readonly repository: InstrumentSearchRepository;
   private readonly cache: Cache;
 
-  constructor(repository: InstrumentRepository, cache: Cache) {
+  constructor(repository: InstrumentSearchRepository, cache: Cache) {
     this.repository = repository;
     this.cache = cache;
   }

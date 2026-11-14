@@ -4,10 +4,8 @@ import { SQSClient } from '@aws-sdk/client-sqs';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { PgOrderEventStore } from '../../src/modules/order-events/infra/pg-order-event-store.ts';
 import { RecordOrderEvent } from '../../src/modules/order-events/application/record-order-event.ts';
-import {
-  SqsOrderEventConsumer,
-  SqsOrderEventQueue,
-} from '../../src/modules/order-events/infra/sqs-order-event-consumer.ts';
+import { OrderEventConsumer } from '../../src/modules/order-events/application/order-event-consumer.ts';
+import { SqsOrderEventQueue } from '../../src/modules/order-events/infra/sqs-order-event-queue.ts';
 import { SnsEventPublisher } from '../../src/modules/order-events/infra/sns-event-publisher.ts';
 import { silentLogger } from '../../src/platform/logger.ts';
 import { createTestApp, type TestApp } from '../support/test-app.ts';
@@ -17,7 +15,7 @@ const enabled = process.env.AWS_EMULATOR_TESTS === 'true';
 
 describe.skipIf(!enabled)('order events through AWS Emulator (SNS -> SQS)', () => {
   let ctx: TestApp;
-  let consumer: SqsOrderEventConsumer;
+  let consumer: OrderEventConsumer;
   let publisher: SnsEventPublisher;
 
   beforeAll(async () => {
@@ -28,7 +26,7 @@ describe.skipIf(!enabled)('order events through AWS Emulator (SNS -> SQS)', () =
       process.env.ORDER_EVENTS_TOPIC_ARN!,
       silentLogger,
     );
-    consumer = new SqsOrderEventConsumer({
+    consumer = new OrderEventConsumer({
       queue: new SqsOrderEventQueue(new SQSClient(aws), process.env.ORDER_EVENTS_QUEUE_URL!),
       recordOrderEvent: new RecordOrderEvent(new PgOrderEventStore(ctx.pool)),
       logger: silentLogger,

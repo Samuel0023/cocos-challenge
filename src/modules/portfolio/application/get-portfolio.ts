@@ -1,16 +1,16 @@
 import type { MarketDataRepository } from '../../marketdata/application/market-data-repository.ts';
 import { valuePortfolio, type PortfolioValuation } from '../domain/position-valuation.ts';
-import type { AccountReader } from './account-reader.ts';
+import type { PortfolioReader } from './portfolio-reader.ts';
 
 export interface Portfolio extends PortfolioValuation {
   userId: number;
 }
 
 export class GetPortfolio {
-  private readonly accounts: AccountReader;
+  private readonly accounts: PortfolioReader;
   private readonly marketData: MarketDataRepository;
 
-  constructor(accounts: AccountReader, marketData: MarketDataRepository) {
+  constructor(accounts: PortfolioReader, marketData: MarketDataRepository) {
     this.accounts = accounts;
     this.marketData = marketData;
   }

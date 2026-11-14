@@ -1,71 +1,9 @@
-import {
-  DeleteMessageCommand,
-  GetQueueAttributesCommand,
-  ReceiveMessageCommand,
-  type SQSClient,
-} from '@aws-sdk/client-sqs';
 import { noopMetrics, type OrderEventMetrics } from '../../../platform/observability/metrics.ts';
 import type { Logger } from '../../../platform/logger.ts';
-import type { RecordOrderEvent } from '../application/record-order-event.ts';
+import type { OrderEventQueue, QueueMessage } from './order-event-queue.ts';
+import type { RecordOrderEvent } from './record-order-event.ts';
 
-export interface QueueMessage {
-  body: string;
-  receiptHandle: string;
-}
-
-/** The queue operations the consumer needs; the loop is tested against a fake. */
-export interface OrderEventQueue {
-  /** Long poll. Rejects when `signal` aborts. */
-  receive(signal: AbortSignal): Promise<QueueMessage[]>;
-  delete(receiptHandle: string): Promise<void>;
-  /** Approximate number of messages waiting; optional, only feeds the backlog metric. */
-  approximateBacklog?(signal: AbortSignal): Promise<number>;
-}
-
-export class SqsOrderEventQueue implements OrderEventQueue {
-  private readonly client: SQSClient;
-  private readonly queueUrl: string;
-
-  constructor(client: SQSClient, queueUrl: string) {
-    this.client = client;
-    this.queueUrl = queueUrl;
-  }
-
-  async receive(signal: AbortSignal): Promise<QueueMessage[]> {
-    const output = await this.client.send(
-      new ReceiveMessageCommand({
-        QueueUrl: this.queueUrl,
-        WaitTimeSeconds: 20,
-        MaxNumberOfMessages: 10,
-      }),
-      { abortSignal: signal },
-    );
-    return (output.Messages ?? []).flatMap((message) =>
-      message.Body !== undefined && message.ReceiptHandle !== undefined
-        ? [{ body: message.Body, receiptHandle: message.ReceiptHandle }]
-        : [],
-    );
-  }
-
-  async delete(receiptHandle: string): Promise<void> {
-    await this.client.send(
-      new DeleteMessageCommand({ QueueUrl: this.queueUrl, ReceiptHandle: receiptHandle }),
-    );
-  }
-
-  async approximateBacklog(signal: AbortSignal): Promise<number> {
-    const output = await this.client.send(
-      new GetQueueAttributesCommand({
-        QueueUrl: this.queueUrl,
-        AttributeNames: ['ApproximateNumberOfMessages'],
-      }),
-      { abortSignal: signal },
-    );
-    return Number(output.Attributes?.ApproximateNumberOfMessages ?? 0);
-  }
-}
-
-export interface SqsOrderEventConsumerOptions {
+export interface OrderEventConsumerOptions {
   queue: OrderEventQueue;
   recordOrderEvent: RecordOrderEvent;
   logger: Logger;
@@ -75,11 +13,11 @@ export interface SqsOrderEventConsumerOptions {
 }
 
 /**
- * Input adapter: polls the order events queue and records each message.
- * A message is deleted only after it is stored; otherwise SQS redelivers it
- * after the visibility timeout (at-least-once, deduplicated by eventId).
+ * Polls the order events queue through its port and records each message.
+ * A message is deleted only after it is stored; otherwise the queue redelivers it
+ * (SQS: after the visibility timeout). Delivery is at-least-once, deduplicated by eventId.
  */
-export class SqsOrderEventConsumer {
+export class OrderEventConsumer {
   private readonly queue: OrderEventQueue;
   private readonly recordOrderEvent: RecordOrderEvent;
   private readonly logger: Logger;
@@ -88,7 +26,7 @@ export class SqsOrderEventConsumer {
   private controller: AbortController | undefined;
   private loop: Promise<void> | undefined;
 
-  constructor(options: SqsOrderEventConsumerOptions) {
+  constructor(options: OrderEventConsumerOptions) {
     this.queue = options.queue;
     this.recordOrderEvent = options.recordOrderEvent;
     this.logger = options.logger;
@@ -149,7 +87,7 @@ export class SqsOrderEventConsumer {
       this.record(() => this.metrics.orderEventProcessed(elapsed()));
       this.logger.debug({ eventId: event.eventId, type: event.type }, 'order event recorded');
     } catch (error) {
-      // Not deleted: SQS makes it visible again after the visibility timeout.
+      // Not deleted: the queue delivers it again (SQS: after the visibility timeout).
       this.record(() => this.metrics.orderEventFailed(elapsed()));
       this.logger.error({ err: error }, 'order event not recorded');
     }
