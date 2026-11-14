@@ -2,6 +2,27 @@
 
 How to run the service, what each container does and what to check when something fails.
 
+## Prerequisites
+
+Three tools, installed once: Node.js 24 or newer, Docker with Compose v2, and Make.
+
+| Tool    | macOS, with [Homebrew](https://brew.sh) | Linux, or Windows with WSL2                              | Check it                 |
+| ------- | --------------------------------------- | -------------------------------------------------------- | ------------------------ |
+| Node.js | `brew install node`                     | [nodejs.org/en/download](https://nodejs.org/en/download) | `node --version`         |
+| Docker  | `brew install --cask docker-desktop`    | [Docker Engine](https://docs.docker.com/engine/install/) | `docker compose version` |
+| Make    | `xcode-select --install`                | `sudo apt install make` on Debian or Ubuntu              | `make --version`         |
+
+Notes:
+
+- **macOS, Make.** `xcode-select --install` provides `make`. `brew install make` also works, but Homebrew names that binary `gmake`.
+- **macOS, Docker.** Open Docker Desktop once so the daemon starts. Colima and OrbStack work too.
+- **Linux, Docker.** Your user must be able to run `docker` without `sudo`, because the Makefile calls it directly.
+- **Other Linux distributions.** Install `make` with the system package manager.
+
+`docker info` answers when the daemon is ready. Nothing else is needed: the load test and the AWS Emulator run in containers.
+
+The ports in [Services](#services), plus 3000 for the API, must be free.
+
 ## Two ways to run
 
 | Mode        | Commands                        | The API runs           |

@@ -21,6 +21,8 @@ You need:
 - Docker, with the daemon running
 - Make
 
+Missing one? [docs/local-setup.md](docs/local-setup.md#prerequisites) has the install commands.
+
 Then:
 
 ```sh
