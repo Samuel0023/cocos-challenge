@@ -20,7 +20,6 @@ flowchart LR
     PG["PostgreSQL repositories"]
     VK["Valkey cache"]
     SNS["SNS publisher"]
-    MET["Prometheus metrics"]
   end
   HTTP --> UC
   CONS --> UC
@@ -28,14 +27,13 @@ flowchart LR
   UC -- ports --> PG
   UC -- ports --> VK
   UC -- ports --> SNS
-  UC -- ports --> MET
 ```
 
-| Layer       | Content                                          | Knows about          |
-| ----------- | ------------------------------------------------ | -------------------- |
-| Domain      | Order rules, sizing, funds check, valuation      | Nothing external     |
-| Application | Use cases and the ports they need                | Domain and ports     |
-| Adapters    | Express, PostgreSQL, Valkey, SNS/SQS, Prometheus | Ports they implement |
+| Layer       | Content                                     | Knows about          |
+| ----------- | ------------------------------------------- | -------------------- |
+| Domain      | Order rules, sizing, funds check, valuation | Nothing external     |
+| Application | Use cases and the ports they need           | Domain and ports     |
+| Adapters    | Express, PostgreSQL, Valkey, SNS/SQS        | Ports they implement |
 
 Three rules follow from this:
 
@@ -68,40 +66,12 @@ src/
 flowchart LR
   API["SubmitOrder / CancelOrder"] -- "publish after commit" --> T["SNS topic<br/>order-events"]
   T --> Q["SQS queue<br/>order-events-queue"]
-  Q -- "long polling" --> C["Consumer loop<br/>(same process)"]
+  Q --> C["Consumer loop<br/>(same process)"]
   C -- "INSERT ... ON CONFLICT DO NOTHING" --> AN[("analytics.order_events")]
-  Q -. "after 5 failed receives" .-> DLQ["order-events-dlq"]
 ```
 
 - Publishing never fails a request: an error is logged, and a publish is aborted after 3 seconds.
 - A message is deleted only after its event is stored. A failed one is redelivered, and the unique `event_id` makes that harmless.
 - With `AWS_ENABLED=false` events are written to the log and the consumer does not start.
 
-## Metrics
-
-`GET /metrics` exposes Prometheus metrics. The Grafana dashboard is `docker/grafana/dashboards/cocos-api.json`; screenshots are in [local-setup.md](local-setup.md#what-a-run-looks-like).
-
-| Metric                                    | Type      | Meaning                                  |
-| ----------------------------------------- | --------- | ---------------------------------------- |
-| `http_request_duration_seconds`           | Histogram | Latency by method, route and status code |
-| `orders_total`                            | Counter   | Stored orders by status, side and type   |
-| `order_events_processed_total`            | Counter   | Events stored by the consumer            |
-| `order_events_failed_total`               | Counter   | Events left in the queue after a failure |
-| `order_event_processing_duration_seconds` | Histogram | Time to store one event                  |
-| `order_events_queue_backlog`              | Gauge     | Messages waiting in SQS                  |
-
-## Reference AWS deployment
-
-Not part of the deliverable: how the same pieces would run on AWS.
-
-```mermaid
-flowchart LR
-  U["Client"] --> ALB["Application Load Balancer"]
-  ALB --> ECS["ECS Fargate<br/>API + consumer loop"]
-  SM["Secrets Manager"] -. "env vars" .-> ECS
-  ECS --> RDS[("RDS for PostgreSQL")]
-  ECS --> EC["ElastiCache for Valkey"]
-  ECS --> SNS["SNS order-events"]
-  SNS --> SQS["SQS order-events-queue"]
-  SQS --> ECS
-```
+Use cases also record metrics through a port; `GET /metrics` exposes them for Prometheus and the Grafana dashboard in `docker/grafana/`.

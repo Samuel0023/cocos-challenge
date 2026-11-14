@@ -1,6 +1,6 @@
 ---
 name: run-service
-description: Start, check and test the Cocos broker API locally with Make and Docker, including SNS/SQS events and metrics. Use when asked to run the service, verify it is healthy, run the tests or diagnose why it does not start.
+description: Start, check and test the Cocos broker API locally with Make and Docker, including SNS/SQS events. Use when asked to run the service, verify it is healthy, run the tests or diagnose why it does not start.
 ---
 
 # Run the service
@@ -16,12 +16,12 @@ Use this skill to start the API, check it responds, and run the tests. Run comma
 
 ## Start
 
-| Goal                                                           | Command                                                              |
-| -------------------------------------------------------------- | -------------------------------------------------------------------- |
-| Start PostgreSQL, Valkey, AWS Emulator, Prometheus and Grafana | `make services`                                                      |
-| Run the API on the host (port 3000)                            | `make dev` (keeps running; use a separate terminal or background it) |
-| Run everything in Docker                                       | `make up`                                                            |
-| Stop and remove containers                                     | `make down`                                                          |
+| Goal                                                            | Command                                                              |
+| --------------------------------------------------------------- | -------------------------------------------------------------------- |
+| Start PostgreSQL, Valkey, AWS Emulator and the monitoring stack | `make services`                                                      |
+| Run the API on the host (port 3000)                             | `make dev` (keeps running; use a separate terminal or background it) |
+| Run everything in Docker                                        | `make up`                                                            |
+| Stop and remove containers                                      | `make down`                                                          |
 
 Development path: `make services`, then `make dev` (SNS/SQS on AWS Emulator). Run `make down` before switching between `make services` and `make up`: `make services` recreates the emulator and wipes its topic and queue. After the emulator restarts, restart `make dev`.
 
@@ -35,15 +35,7 @@ curl -s http://localhost:3000/users/1/portfolio
 - `/health` returns `{"status":"ok"}` with status 200. A 503 means PostgreSQL is not reachable.
 - `/users/1/portfolio` returns `totalAccountValue` `904784.00` on the seed data.
 
-Events and metrics, after posting an order (see `requests.http`):
-
-```sh
-curl -s http://localhost:3000/metrics | grep -E '^orders_total|^order_events_processed_total'
-curl -s http://localhost:9090/api/v1/targets   # job cocos-api, health "up"
-curl -s http://localhost:3001/api/search       # lists the "Cocos API" dashboard, no login
-```
-
-Dashboard: http://localhost:3001/d/cocos-api/cocos-api. Prometheus: http://localhost:9090.
+Optional: after posting an order (see `requests.http`), `curl -s http://localhost:3000/metrics` shows `orders_total`, and the Grafana dashboard is at http://localhost:3001/d/cocos-api/cocos-api.
 
 ## Test and lint
 
@@ -64,6 +56,5 @@ make typecheck
 | `Port already in use`           | Set another port: `PORT=3222 make dev`                                                                                                |
 | Seed data looks stale           | Run `make down`, then `make services`                                                                                                 |
 | Order events stop being stored  | The emulator restarted with new credentials. Restart `make dev`; if the queue is gone, `make down` then `make services`               |
-| Grafana panels are empty        | Check http://localhost:9090/targets: the API must answer on port 3000                                                                 |
 
 More detail: `docs/local-setup.md`.

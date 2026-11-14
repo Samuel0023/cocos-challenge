@@ -16,7 +16,6 @@ Reference for agents. The key ones, with rationale, are in [docs/decisions.md](.
 | Idempotency      | `Idempotency-Key` required on `POST /orders` (D-20)                                                               |
 | Events           | One `eventId` per event. Unique key and `ON CONFLICT DO NOTHING` (D-18)                                           |
 | Consumer         | Async loop inside the API process, long polling SQS, `CONSUMER_ENABLED` (D-16)                                    |
-| Dashboard        | Grafana datasource and dashboard provisioned, anonymous read-only (D-22)                                          |
 | Secrets          | Environment variables only (D-15)                                                                                 |
 | Tooling          | ESLint recommended, typescript-eslint, Prettier, `strict` (D-24)                                                  |
 

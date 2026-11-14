@@ -4,7 +4,7 @@ Context for AI coding agents working in this repository. Read it before changing
 
 ## What the service does
 
-REST API for a broker (Cocos backend challenge). It returns a user's portfolio, searches instruments and accepts orders and cash transfers. Each stored or cancelled order is published to SNS; a consumer loop in the same process reads SQS and stores the events. `GET /metrics` feeds Prometheus and a provisioned Grafana dashboard. Node.js, Express 5, TypeScript, PostgreSQL, Valkey as cache, AWS Emulator for SNS/SQS locally.
+REST API for a broker (Cocos backend challenge). It returns a user's portfolio, searches instruments and accepts orders and cash transfers. Each stored or cancelled order is published to SNS; a consumer loop in the same process reads SQS and stores the events. Node.js, Express 5, TypeScript, PostgreSQL, Valkey as cache, AWS Emulator for SNS/SQS locally.
 
 ## Architecture in brief
 

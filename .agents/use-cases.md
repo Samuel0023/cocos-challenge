@@ -20,4 +20,4 @@ Reference for agents. Each use case is a class in `src/modules/*/application/`. 
 - Position math is in `src/modules/portfolio/domain/position-valuation.ts`.
 - Use cases throw `AppError` helpers (`notFound`, `conflict`, `unprocessable`) from `src/platform/errors.ts`. An `AppError` carries a code, not a status: `src/platform/http/error-middleware.ts` maps the code to the HTTP status. `badRequest` is for the HTTP layer (headers, path ids); body and query validation throws a `ZodError`.
 
-`RecordOrderEvent` is called by `OrderEventConsumer` in `src/modules/order-events/application/order-event-consumer.ts`, which polls the `OrderEventQueue` port (`SqsOrderEventQueue` in `src/modules/order-events/infra/sqs-order-event-queue.ts`) and records the consumer metrics. See [docs/flows.md](../docs/flows.md), section "Event consumer".
+`RecordOrderEvent` is called by `OrderEventConsumer` in `src/modules/order-events/application/order-event-consumer.ts`, which polls the `OrderEventQueue` port (`SqsOrderEventQueue` in `src/modules/order-events/infra/sqs-order-event-queue.ts`). See [docs/flows.md](../docs/flows.md), section "Event consumer".
