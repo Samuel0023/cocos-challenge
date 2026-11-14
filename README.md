@@ -85,6 +85,8 @@ make test
 
 The tests start their own PostgreSQL container, so Docker must be running. You do not need `make services` first.
 
+There is also a load test, `make load`. In a local run the API served about 1,000 requests per second with no errors, and 95% of order submissions finished within 71 ms. The details are in [docs/local-setup.md](docs/local-setup.md#load-test).
+
 ## Commands
 
 | Command          | What it does                                                                |

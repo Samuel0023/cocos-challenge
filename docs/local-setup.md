@@ -37,7 +37,19 @@ flowchart LR
 
 The database has no volume: `make down` and a new start restore the seed.
 
-`make services` also starts Prometheus (http://localhost:9090) and Grafana (http://localhost:3001/d/cocos-api/cocos-api, no login). `make load` runs a k6 load test against a running API.
+`make services` also starts Prometheus (http://localhost:9090) and Grafana (http://localhost:3001/d/cocos-api/cocos-api, no login).
+
+## Load test
+
+`make load` runs a k6 load test against an API started with `make dev` or `make up`: 20 virtual users for 30 seconds, mixing portfolio, search and a market buy followed by a sell. It writes thousands of orders; `make down` and `make services` restore the seed.
+
+One local run on 13 November 2026 gave these numbers. They show what to expect, not a benchmark.
+
+| Measure               | Value                                                         |
+| --------------------- | ------------------------------------------------------------- |
+| Peak request rate     | About 1,000 requests per second, no errors                    |
+| p95 latency per route | `POST /orders` 70.6 ms, portfolio 29.1 ms, search 9.58 ms     |
+| Order events          | All processed. The backlog peaked near 1,000 and drained to 0 |
 
 ## Environment variables
 
