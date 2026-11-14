@@ -1,4 +1,4 @@
-.PHONY: services dev up down test test-aws lint typecheck
+.PHONY: services dev up down test test-aws load lint typecheck
 
 # Testcontainers needs the socket of the active Docker context (Colima, OrbStack, Docker Desktop).
 DOCKER_HOST ?= $(shell docker context inspect --format '{{.Endpoints.docker.Host}}' 2>/dev/null)
@@ -44,6 +44,14 @@ test: ## Run unit and functional tests (needs Docker)
 
 test-aws: ## Run the SNS -> SQS integration test against AWS Emulator (after make services)
 	$(AWS_ENV) AWS_EMULATOR_TESTS=true npx vitest run test/order-events/aws-emulator.integration.test.ts
+
+# The API runs on the host, or in the Docker stack publishing port 3000 on the host.
+LOAD_BASE_URL ?= http://host.docker.internal:3000
+
+load: ## Run the k6 load test against a running API (after make dev or make up). It writes orders.
+	docker run --rm -i -v $(CURDIR)/test/load:/scripts:ro \
+		-e BASE_URL=$(LOAD_BASE_URL) -e VUS -e DURATION \
+		grafana/k6:1.3.0 run /scripts/api.js
 
 lint: ## Run ESLint and Prettier
 	npm run lint
